@@ -1,0 +1,59 @@
+# =============================================================================
+# FILE: docker-compose.yml
+# DESCRIPTION: Docker Compose multi-container configuration
+# LOCATION: Project root directory
+# PURPOSE: Orchestrates bot, PostgreSQL, and Redis containers
+# USAGE: docker-compose up -d
+# =============================================================================
+
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: school_bot
+    env_file: .env
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    volumes:
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+      - ./exports:/app/exports
+    networks:
+      - bot_network
+
+  db:
+    image: postgres:15-alpine
+    container_name: school_bot_db
+    environment:
+      POSTGRES_DB: school_bot
+      POSTGRES_USER: bot_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-change_this_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - bot_network
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: school_bot_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - bot_network
+    ports:
+      - "6379:6379"
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  bot_network:
+    driver: bridge

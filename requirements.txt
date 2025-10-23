@@ -1,0 +1,45 @@
+# =============================================================================
+# FILE: requirements.txt
+# DESCRIPTION: Python dependencies - all packages needed for the project
+# LOCATION: Project root directory
+# PURPOSE: Install with: pip install -r requirements.txt
+# =============================================================================
+
+# Core Telegram Bot
+python-telegram-bot>=20.7
+python-dotenv>=1.0.0
+
+# Database
+sqlalchemy>=2.0.23
+alembic>=1.12.1
+
+# Data Processing & Export
+pandas>=2.3.1
+openpyxl>=3.1.2
+reportlab>=4.0.7  # PDF generation
+xlrd>=2.0.1
+
+# Caching (optional but recommended)
+redis>=5.0.1
+hiredis>=2.2.3
+
+# Task Scheduling
+apscheduler>=3.10.4
+
+# Date/Time
+python-dateutil>=2.8.2
+pytz>=2023.3
+
+# Utilities
+requests>=2.31.0
+pillow>=11.3.0
+
+# Validation
+validators>=0.22.0
+phonenumbers>=8.13.26
+
+# Development & Testing
+pytest>=7.4.3
+pytest-asyncio>=0.21.1
+black>=23.12.1
+flake8>=6.1.0

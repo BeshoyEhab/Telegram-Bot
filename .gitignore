@@ -1,0 +1,67 @@
+# =============================================================================
+# FILE: .gitignore
+# DESCRIPTION: Git ignore rules - files to exclude from version control
+# LOCATION: Project root directory
+# PURPOSE: Prevents sensitive files from being committed to Git
+# =============================================================================
+
+# Environment files
+.env
+.env.dev
+.env.prod
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Backups
+backups/
+*.sql
+*.backup
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Excel/CSV exports
+exports/
+*.xlsx
+*.csv
+*.pdf
+
+# Alembic
+alembic.ini.local
