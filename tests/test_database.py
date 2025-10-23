@@ -12,6 +12,7 @@ Tests for database connection and models.
 
 import pytest
 from datetime import datetime, date
+from sqlalchemy import text
 from database import (
     check_connection, get_db, get_table_counts,
     User, Class, Attendance
@@ -29,7 +30,7 @@ def test_get_db_context_manager():
     """Test get_db context manager."""
     with get_db() as db:
         # Should be able to execute a simple query
-        result = db.execute("SELECT 1").scalar()
+        result = db.execute(text("SELECT 1")).scalar()
         assert result == 1
 
 

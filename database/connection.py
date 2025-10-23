@@ -9,7 +9,7 @@
 Database connection and session management.
 """
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.pool import StaticPool
 from contextlib import contextmanager
@@ -102,7 +102,7 @@ def check_connection():
     """Check if database connection is working."""
     try:
         with get_db() as db:
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
         logger.info("Database connection successful")
         return True
     except Exception as e:
