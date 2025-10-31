@@ -1,30 +1,37 @@
 # =============================================================================
 # FILE: handlers/__init__.py
-# DESCRIPTION: Handlers package initialization (placeholder for Phase 3+)
+# DESCRIPTION: Handlers package initialization (UPDATED for Phase 2)
 # LOCATION: handlers/__init__.py
-# PURPOSE: Will contain all Telegram command and callback handlers
+# PURPOSE: Export all bot handlers and registration functions
 # =============================================================================
 
 """
 Handlers package for the Telegram School Bot.
-This package will contain all command and callback handlers.
-
-Modules (to be created in future phases):
-- common.py: Common handlers (/start, /help, /cancel)
-- language.py: Language selection
-- student.py: Student role handlers
-- teacher.py: Teacher role handlers
-- leader.py: Leader role handlers
-- manager.py: Manager role handlers
-- developer.py: Developer role handlers
-- attendance.py: Attendance editing
-- statistics.py: Statistics viewing
-- export.py: Export functionality
-- search.py: Search functionality
-- bulk.py: Bulk operations
-- broadcast.py: Broadcast messaging
-- mimic.py: Mimic mode
 """
 
-# Placeholder for future imports
-__all__ = []
+from handlers.common import (
+    start_command,
+    help_command,
+    cancel_command,
+    show_main_menu,
+    register_common_handlers,
+)
+
+from handlers.language import (
+    language_command,
+    show_language_menu,
+    register_language_handlers,
+)
+
+__all__ = [
+    # Common handlers
+    "start_command",
+    "help_command",
+    "cancel_command",
+    "show_main_menu",
+    "register_common_handlers",
+    # Language handlers
+    "language_command",
+    "show_language_menu",
+    "register_language_handlers",
+]

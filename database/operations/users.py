@@ -1,6 +1,6 @@
 # =============================================================================
 # FILE: database/operations/users.py
-# DESCRIPTION: User CRUD operations
+# DESCRIPTION: User CRUD operations (FIXED - Session Detachment Issue)
 # LOCATION: database/operations/users.py
 # PURPOSE: Create, read, update, delete users with validation
 # =============================================================================
@@ -100,6 +100,9 @@ def create_user(
             db.add(user)
             db.flush()  # Get the ID
 
+            # FIX: Expunge object to make it independent of session
+            db.expunge(user)
+
             return True, user, ""
 
     except IntegrityError as e:
@@ -119,7 +122,11 @@ def get_user_by_telegram_id(telegram_id: int) -> Optional[User]:
         User object or None
     """
     with get_db() as db:
-        return db.query(User).filter_by(telegram_id=telegram_id).first()
+        user = db.query(User).filter_by(telegram_id=telegram_id).first()
+        if user:
+            # FIX: Expunge to detach from session
+            db.expunge(user)
+        return user
 
 
 def get_user_by_id(user_id: int) -> Optional[User]:
@@ -133,7 +140,11 @@ def get_user_by_id(user_id: int) -> Optional[User]:
         User object or None
     """
     with get_db() as db:
-        return db.query(User).filter_by(id=user_id).first()
+        user = db.query(User).filter_by(id=user_id).first()
+        if user:
+            # FIX: Expunge to detach from session
+            db.expunge(user)
+        return user
 
 
 def update_user(
@@ -202,6 +213,9 @@ def update_user(
 
             user.updated_at = datetime.utcnow()
 
+            # FIX: Expunge before returning
+            db.expunge(user)
+
             return True, user, ""
 
     except Exception as e:
@@ -244,7 +258,11 @@ def get_users_by_role(role: int) -> List[User]:
         List of users
     """
     with get_db() as db:
-        return db.query(User).filter_by(role=role).all()
+        users = db.query(User).filter_by(role=role).all()
+        # FIX: Expunge all users
+        for user in users:
+            db.expunge(user)
+        return users
 
 
 def get_users_by_class(class_id: int) -> List[User]:
@@ -258,7 +276,11 @@ def get_users_by_class(class_id: int) -> List[User]:
         List of users
     """
     with get_db() as db:
-        return db.query(User).filter_by(class_id=class_id).all()
+        users = db.query(User).filter_by(class_id=class_id).all()
+        # FIX: Expunge all users
+        for user in users:
+            db.expunge(user)
+        return users
 
 
 def search_users(query: str, class_id: Optional[int] = None) -> List[User]:
@@ -287,7 +309,11 @@ def search_users(query: str, class_id: Optional[int] = None) -> List[User]:
             User.telegram_id.ilike(f"%{query}%"),
         )
 
-        return base_query.filter(search_filter).all()
+        users = base_query.filter(search_filter).all()
+        # FIX: Expunge all users
+        for user in users:
+            db.expunge(user)
+        return users
 
 
 def update_last_active(telegram_id: int) -> bool:
@@ -331,7 +357,11 @@ def get_all_users(limit: Optional[int] = None, offset: int = 0) -> List[User]:
         if limit:
             query = query.limit(limit)
 
-        return query.all()
+        users = query.all()
+        # FIX: Expunge all users
+        for user in users:
+            db.expunge(user)
+        return users
 
 
 def count_users(role: Optional[int] = None, class_id: Optional[int] = None) -> int:

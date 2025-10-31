@@ -1,20 +1,35 @@
 # =============================================================================
 # FILE: middleware/__init__.py
-# DESCRIPTION: Middleware package initialization (placeholder for Phase 3+)
+# DESCRIPTION: Middleware package initialization (UPDATED for Phase 2)
 # LOCATION: middleware/__init__.py
-# PURPOSE: Will contain authentication, logging, rate limiting middleware
+# PURPOSE: Export authentication and language middleware
 # =============================================================================
 
 """
 Middleware package for the Telegram School Bot.
-This package contains middleware for authentication, logging, etc.
-
-Modules (to be created in future phases):
-- auth.py: Authentication middleware
-- logging.py: Action logging middleware
-- rate_limit.py: Rate limiting
-- session_timeout.py: Session timeout checker
 """
 
-# Placeholder for future imports
-__all__ = []
+from middleware.auth import (
+    require_auth,
+    require_role,
+    load_user_context,
+    get_user_lang,
+)
+
+from middleware.language import (
+    load_language_preference,
+    set_language_preference,
+    get_current_language,
+)
+
+__all__ = [
+    # Authentication
+    "require_auth",
+    "require_role",
+    "load_user_context",
+    "get_user_lang",
+    # Language
+    "load_language_preference",
+    "set_language_preference",
+    "get_current_language",
+]

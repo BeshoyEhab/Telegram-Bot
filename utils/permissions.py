@@ -374,11 +374,11 @@ def get_user_language(telegram_id: int) -> str:
     Returns:
         Language code ('ar' or 'en')
     """
-    user = get_user_from_db(telegram_id)
-
-    if user and user.language_preference:
-        return user.language_preference
-
+    with get_db() as db:
+        user = db.query(User).filter(User.telegram_id == telegram_id).first()
+        if user and user.language_preference:
+            return user.language_preference
+    
     return "ar"  # Default to Arabic
 
 

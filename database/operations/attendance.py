@@ -1,6 +1,6 @@
 # =============================================================================
 # FILE: database/operations/attendance.py
-# DESCRIPTION: Attendance CRUD operations
+# DESCRIPTION: Attendance CRUD operations (FIXED - Session Detachment Issue)
 # LOCATION: database/operations/attendance.py
 # PURPOSE: Mark, update, and query attendance (Saturday-only)
 # =============================================================================
@@ -72,6 +72,8 @@ def mark_attendance(
                 existing.status = status
                 existing.note = note
                 existing.marked_by = marked_by
+                # FIX: Expunge before returning
+                db.expunge(existing)
                 return True, existing, ""
 
             # Create new attendance record
@@ -86,6 +88,9 @@ def mark_attendance(
 
             db.add(attendance)
             db.flush()
+
+            # FIX: Expunge before returning
+            db.expunge(attendance)
 
             return True, attendance, ""
 
@@ -112,7 +117,7 @@ def get_attendance(
         return None
 
     with get_db() as db:
-        return (
+        attendance = (
             db.query(Attendance)
             .filter(
                 and_(
@@ -123,6 +128,10 @@ def get_attendance(
             )
             .first()
         )
+        if attendance:
+            # FIX: Expunge before returning
+            db.expunge(attendance)
+        return attendance
 
 
 def get_class_attendance(
@@ -160,6 +169,11 @@ def get_class_attendance(
                 )
                 .first()
             )
+
+            # FIX: Expunge both user and attendance
+            db.expunge(user)
+            if attendance:
+                db.expunge(attendance)
 
             result.append((user, attendance))
 
@@ -246,7 +260,13 @@ def get_user_attendance_history(
         if class_id:
             query = query.filter_by(class_id=class_id)
 
-        return query.order_by(Attendance.date.desc()).limit(limit).all()
+        records = query.order_by(Attendance.date.desc()).limit(limit).all()
+
+        # FIX: Expunge all records
+        for record in records:
+            db.expunge(record)
+
+        return records
 
 
 def get_attendance_between_dates(
@@ -276,7 +296,13 @@ def get_attendance_between_dates(
         if class_id:
             query = query.filter_by(class_id=class_id)
 
-        return query.order_by(Attendance.date).all()
+        records = query.order_by(Attendance.date).all()
+
+        # FIX: Expunge all records
+        for record in records:
+            db.expunge(record)
+
+        return records
 
 
 def count_attendance(

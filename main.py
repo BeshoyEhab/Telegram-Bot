@@ -1,8 +1,8 @@
 # =============================================================================
 # FILE: main.py
-# DESCRIPTION: Bot entry point - main application file
+# DESCRIPTION: Bot entry point (FIXED - Better connection handling)
 # LOCATION: Project root directory
-# PURPOSE: Starts the Telegram bot, initializes database, registers handlers
+# PURPOSE: Starts bot with better error handling and timeout settings
 # USAGE: python main.py
 # =============================================================================
 
@@ -12,43 +12,17 @@ Main entry point for the Telegram School Management Bot.
 
 import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Application
+from telegram.request import HTTPXRequest
 
 import config
 from utils.logging_config import setup_logging
 from database import init_db, check_connection
+from handlers import register_common_handlers, register_language_handlers
 
 # Setup logging first
 setup_logging()
 logger = logging.getLogger(__name__)
-
-
-async def start(update: Update, context):
-    """Start command handler - entry point for users."""
-    user_id = update.effective_user.id
-    logger.info(f"User {user_id} started the bot")
-
-    if user_id in config.AUTHORIZED_USERS:
-        await update.message.reply_text(
-            "مرحباً! اختر لغتك 🌐\n"
-            "Welcome! Choose your language\n\n"
-            "This bot is currently under development."
-        )
-    else:
-        await update.message.reply_text(
-            f"مرحباً! معرف Telegram الخاص بك هو: {user_id}. إذا لم تكن مسجلاً، أرسله إلى المطور.\n"
-            f"Welcome! Your Telegram ID is: {user_id}. Send it to the developer if not registered."
-        )
-
-
-async def help_command(update: Update, context):
-    """Help command handler."""
-    await update.message.reply_text(
-        "❓ Help / مساعدة\n\n"
-        "Bot commands:\n"
-        "/start - Start the bot\n"
-        "/help - Show this help message"
-    )
 
 
 async def error_handler(update: Update, context):
@@ -65,11 +39,21 @@ async def error_handler(update: Update, context):
             logger.error(f"Failed to send error message: {e}")
 
 
+async def post_init(application: Application) -> None:
+    """Post initialization - verify bot connection."""
+    try:
+        bot_info = await application.bot.get_me()
+        logger.info(f"✅ Bot connected: @{bot_info.username} (ID: {bot_info.id})")
+    except Exception as e:
+        logger.error(f"❌ Failed to verify bot connection: {e}")
+        raise
+
+
 def main():
     """Main function to run the bot."""
 
     logger.info("=" * 60)
-    logger.info("Starting Telegram School Management Bot")
+    logger.info("Starting Telegram School Management Bot - Phase 2")
     logger.info("=" * 60)
 
     # Check database connection
@@ -82,37 +66,69 @@ def main():
     logger.info("Initializing database tables...")
     init_db()
 
-    # Create application
-    logger.info("Creating Telegram application...")
-    application = Application.builder().token(config.BOT_API).build()
+    # Create custom request with longer timeouts
+    logger.info("Creating Telegram application with custom timeouts...")
+    request = HTTPXRequest(
+        connection_pool_size=8,
+        connect_timeout=30.0,  # Increased from default 5.0
+        read_timeout=30.0,     # Increased from default 5.0
+        write_timeout=30.0,    # Increased from default 5.0
+        pool_timeout=30.0      # Increased from default 1.0
+    )
 
-    # Add handlers
+    # Create application with custom request
+    application = (
+        Application.builder()
+        .token(config.BOT_API)
+        .request(request)
+        .post_init(post_init)  # Verify connection after init
+        .build()
+    )
+
+    # Register handlers
     logger.info("Registering handlers...")
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("help", help_command))
+    register_common_handlers(application)
+    register_language_handlers(application)
 
     # Add error handler
     application.add_error_handler(error_handler)
 
     # Start bot
     logger.info("Bot is starting...")
-    logger.info(f"Bot username: @{config.BOT_USERNAME}")
     logger.info(f"Database: {config.DATABASE_URL}")
     logger.info(f"Authorized users: {len(config.AUTHORIZED_USERS)}")
     logger.info("=" * 60)
 
     # Run the bot
-    if config.WEBHOOK_MODE:
-        logger.info(f"Starting in webhook mode: {config.WEBHOOK_URL}")
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=config.WEBHOOK_PORT,
-            url_path=config.BOT_API,
-            webhook_url=f"{config.WEBHOOK_URL}/{config.BOT_API}",
-        )
-    else:
-        logger.info("Starting in polling mode...")
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+    try:
+        if config.WEBHOOK_MODE:
+            logger.info(f"Starting in webhook mode: {config.WEBHOOK_URL}")
+            application.run_webhook(
+                listen="0.0.0.0",
+                port=config.WEBHOOK_PORT,
+                url_path=config.BOT_API,
+                webhook_url=f"{config.WEBHOOK_URL}/{config.BOT_API}",
+            )
+        else:
+            logger.info("Starting in polling mode...")
+            logger.info("Connecting to Telegram...")
+            application.run_polling(
+                allowed_updates=Update.ALL_TYPES,
+                drop_pending_updates=True,  # Drop old updates
+                close_loop=False
+            )
+    except Exception as e:
+        logger.critical(f"Failed to start bot: {e}")
+        logger.info("\n" + "=" * 60)
+        logger.info("TROUBLESHOOTING:")
+        logger.info("=" * 60)
+        logger.info("1. Check your internet connection")
+        logger.info("2. Verify bot token is correct in .env")
+        logger.info("3. Test token: curl https://api.telegram.org/bot<TOKEN>/getMe")
+        logger.info("4. Check if Telegram is blocked in your region")
+        logger.info("5. Try using a VPN or proxy")
+        logger.info("=" * 60)
+        raise
 
 
 if __name__ == "__main__":
