@@ -65,3 +65,4 @@ exports/
 
 # Alembic
 alembic.ini.local
+tests/
