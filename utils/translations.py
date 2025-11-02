@@ -1,6 +1,6 @@
 # =============================================================================
 # FILE: utils/translations.py
-# DESCRIPTION: Complete Arabic/English translation system
+# DESCRIPTION: Complete Arabic/English translation system (PHASE 2 COMPLETE)
 # LOCATION: utils/translations.py
 # PURPOSE: Bilingual support for all bot messages and UI elements
 # =============================================================================
@@ -75,6 +75,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'mimic_mode': '🎭 Mimic Mode',
         'analytics': '📊 Analytics',
         'manage_backups': '💾 Manage Backups',
+        'system_management': '⚙️ System Management',
         
         # Common Actions
         'undo_last': '↩️ Undo Last',
@@ -125,6 +126,19 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'role': 'Role',
         'telegram_id': 'Telegram ID',
         'years_old': 'years old',
+        'language': 'Language',
+        
+        # NEW - Phase 2 Keys
+        'no_attendance_records': 'No attendance records yet',
+        'recent_records': 'Recent Records',
+        'no_class_assigned': 'No class assigned yet',
+        'no_students': 'No students in your class yet',
+        'students': 'Students',
+        'no_records': 'No records yet',
+        'users': 'Users',
+        'classes': 'Classes',
+        'feature_coming_soon': 'This feature is coming soon!',
+        'please_wait': 'Please wait for the next phase',
         
         # Errors
         'error': 'Error',
@@ -262,6 +276,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'mimic_mode': '🎭 وضع التقليد',
         'analytics': '📊 التحليلات',
         'manage_backups': '💾 إدارة النسخ الاحتياطية',
+        'system_management': '⚙️ إدارة النظام',
         
         # Common Actions
         'undo_last': '↩️ تراجع',
@@ -312,6 +327,19 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'role': 'الدور',
         'telegram_id': 'معرف تليجرام',
         'years_old': 'سنة',
+        'language': 'اللغة',
+        
+        # NEW - Phase 2 Keys
+        'no_attendance_records': 'لا توجد سجلات حضور بعد',
+        'recent_records': 'السجلات الأخيرة',
+        'no_class_assigned': 'لم يتم تعيين فصل لك بعد',
+        'no_students': 'لا يوجد طلاب في فصلك بعد',
+        'students': 'طلاب',
+        'no_records': 'لا توجد سجلات بعد',
+        'users': 'المستخدمين',
+        'classes': 'الفصول',
+        'feature_coming_soon': 'هذه الميزة قادمة قريباً!',
+        'please_wait': 'يرجى الانتظار للمرحلة القادمة',
         
         # Errors
         'error': 'خطأ',
@@ -571,24 +599,10 @@ if __name__ == '__main__':
     print("Arabic:", get_translation('ar', 'welcome'))
     print("English:", get_translation('en', 'welcome'))
     
-    # Test bilingual
-    print("\nBilingual:")
-    print(get_bilingual_text('check_attendance'))
-    
-    # Test formatting
-    print("\nFormatted:")
-    print(get_translation('ar', 'not_saturday', date='2025-10-25'))
-    print(get_translation('en', 'not_saturday', date='2025-10-25'))
-    
-    # Test role names
-    print("\nRoles:")
-    for role in range(1, 6):
-        print(f"Role {role}: {get_role_name(role, 'ar')} / {get_role_name(role, 'en')}")
-    
-    # Test error messages
-    print("\nError Messages:")
-    print(get_error_message('phone_invalid_length', 'ar'))
-    print(get_error_message('phone_invalid_length', 'en'))
+    # Test NEW keys
+    print("\nNew Phase 2 Keys:")
+    print("AR:", get_translation('ar', 'feature_coming_soon'))
+    print("EN:", get_translation('en', 'feature_coming_soon'))
     
     print("\n✅ Translation system loaded successfully!")
     print(f"Total translations: {len(TRANSLATIONS['ar'])} per language")
