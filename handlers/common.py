@@ -1,8 +1,8 @@
 # =============================================================================
 # FILE: handlers/common.py
-# DESCRIPTION: Common handlers (FIXED - Auto-register users from .env)
+# DESCRIPTION: Common handlers (Phase 2 Complete - Fixed callback patterns)
 # LOCATION: handlers/common.py
-# PURPOSE: Core bot commands with automatic user registration
+# PURPOSE: Core bot commands with proper callback patterns for role menus
 # =============================================================================
 
 """
@@ -208,15 +208,15 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "check_attendance"),
-                callback_data="menu_check_attendance"
+                callback_data="student_my_attendance"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "my_details"),
-                callback_data="menu_my_details"
+                callback_data="student_my_details"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "my_statistics"),
-                callback_data="menu_my_stats"
+                callback_data="student_my_stats"
             )],
         ]
     
@@ -225,19 +225,19 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "edit_attendance"),
-                callback_data="menu_edit_attendance"
+                callback_data="teacher_mark_attendance"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "student_details"),
-                callback_data="menu_student_details"
+                callback_data="teacher_student_details"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "class_statistics"),
-                callback_data="menu_class_stats"
+                callback_data="teacher_class_stats"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "my_details"),
-                callback_data="menu_my_details"
+                callback_data="student_my_details"
             )],
         ]
     
@@ -246,23 +246,23 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "edit_attendance"),
-                callback_data="menu_edit_attendance"
+                callback_data="teacher_mark_attendance"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "student_details"),
-                callback_data="menu_student_details"
+                callback_data="teacher_student_details"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "add_student"),
-                callback_data="menu_add_student"
+                callback_data="leader_add_student"
             ),
             InlineKeyboardButton(
                 get_translation(lang, "remove_student"),
-                callback_data="menu_remove_student"
+                callback_data="leader_remove_student"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "class_statistics"),
-                callback_data="menu_class_stats"
+                callback_data="teacher_class_stats"
             )],
         ]
     
@@ -271,23 +271,23 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "edit_attendance"),
-                callback_data="menu_edit_attendance"
+                callback_data="teacher_mark_attendance"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "student_details"),
-                callback_data="menu_student_details"
+                callback_data="teacher_student_details"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "broadcast_message"),
-                callback_data="menu_broadcast"
+                callback_data="manager_broadcast"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "create_backup"),
-                callback_data="menu_backup"
+                callback_data="manager_backup"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "class_statistics"),
-                callback_data="menu_class_stats"
+                callback_data="teacher_class_stats"
             )],
         ]
     
@@ -296,19 +296,19 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "analytics"),
-                callback_data="menu_analytics"
+                callback_data="developer_analytics"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "mimic_mode"),
-                callback_data="menu_mimic"
+                callback_data="developer_mimic"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "broadcast_message"),
-                callback_data="menu_broadcast"
+                callback_data="manager_broadcast"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "create_backup"),
-                callback_data="menu_backup"
+                callback_data="manager_backup"
             )],
         ]
     

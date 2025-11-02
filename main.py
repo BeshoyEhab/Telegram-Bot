@@ -1,8 +1,8 @@
 # =============================================================================
 # FILE: main.py
-# DESCRIPTION: Bot entry point (FIXED - Better connection handling)
+# DESCRIPTION: Bot entry point (Phase 2 Complete - All Handlers)
 # LOCATION: Project root directory
-# PURPOSE: Starts bot with better error handling and timeout settings
+# PURPOSE: Starts bot with all Phase 2 handlers registered
 # USAGE: python main.py
 # =============================================================================
 
@@ -18,7 +18,15 @@ from telegram.request import HTTPXRequest
 import config
 from utils.logging_config import setup_logging
 from database import init_db, check_connection
-from handlers import register_common_handlers, register_language_handlers
+from handlers import (
+    register_common_handlers, 
+    register_language_handlers,
+    register_student_handlers,
+    register_teacher_handlers,
+    register_leader_handlers,
+    register_manager_handlers,
+    register_developer_handlers
+)
 
 # Setup logging first
 setup_logging()
@@ -89,6 +97,11 @@ def main():
     logger.info("Registering handlers...")
     register_common_handlers(application)
     register_language_handlers(application)
+    register_student_handlers(application)
+    register_teacher_handlers(application)
+    register_leader_handlers(application)
+    register_manager_handlers(application)
+    register_developer_handlers(application)
 
     # Add error handler
     application.add_error_handler(error_handler)
