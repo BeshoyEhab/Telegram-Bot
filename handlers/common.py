@@ -1,8 +1,8 @@
 # =============================================================================
 # FILE: handlers/common.py
-# DESCRIPTION: Common handlers (Phase 2 Complete - Fixed callback patterns)
+# DESCRIPTION: Common handlers with FIXED back button navigation
 # LOCATION: handlers/common.py
-# PURPOSE: Core bot commands with proper callback patterns for role menus
+# PURPOSE: Core bot commands with proper back button callback handling
 # =============================================================================
 
 """
@@ -186,6 +186,8 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Clear any ongoing conversation state
     context.user_data.pop("conversation_state", None)
     context.user_data.pop("temp_data", None)
+    context.user_data.pop("attendance_changes", None)
+    context.user_data.pop("selected_date", None)
     
     await update.message.reply_text(
         get_translation(lang, "ok")
@@ -225,7 +227,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "edit_attendance"),
-                callback_data="teacher_mark_attendance"
+                callback_data="attendance_start"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "student_details"),
@@ -246,7 +248,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "edit_attendance"),
-                callback_data="teacher_mark_attendance"
+                callback_data="attendance_start"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "student_details"),
@@ -271,7 +273,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton(
                 get_translation(lang, "edit_attendance"),
-                callback_data="teacher_mark_attendance"
+                callback_data="attendance_start"
             )],
             [InlineKeyboardButton(
                 get_translation(lang, "student_details"),
@@ -326,7 +328,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     reply_markup = InlineKeyboardMarkup(keyboard)
     
-    message = get_translation(lang, "choose_language")  # Will update translation
+    message = get_translation(lang, "welcome")
     
     if update.callback_query:
         await update.callback_query.edit_message_text(
@@ -338,6 +340,23 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             message,
             reply_markup=reply_markup
         )
+
+
+async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle back button - return to main menu.
+    Callback: back_main or menu_main
+    """
+    query = update.callback_query
+    await query.answer()
+    
+    # Clear any temporary data
+    context.user_data.pop("attendance_changes", None)
+    context.user_data.pop("selected_date", None)
+    context.user_data.pop("conversation_state", None)
+    context.user_data.pop("temp_data", None)
+    
+    await show_main_menu(update, context)
 
 
 async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -356,6 +375,9 @@ async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         # Show help as message instead of editing
         lang = get_user_lang(context)
         await query.message.reply_text(get_translation(lang, "help_text"))
+    elif action == "main":
+        # Back to main menu
+        await show_main_menu(update, context)
     else:
         # Feature not implemented yet
         lang = get_user_lang(context)
@@ -375,6 +397,12 @@ def register_common_handlers(application):
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("cancel", cancel_command))
+    
+    # Back button handlers
+    application.add_handler(CallbackQueryHandler(back_to_main_menu, pattern="^back_main$"))
+    application.add_handler(CallbackQueryHandler(back_to_main_menu, pattern="^menu_main$"))
+    
+    # Main menu callbacks
     application.add_handler(CallbackQueryHandler(main_menu_callback, pattern="^menu_"))
     
     logger.info("Common handlers registered")
