@@ -19,7 +19,7 @@ import config
 from utils.logging_config import setup_logging
 from database import init_db, check_connection
 from handlers import (
-    register_common_handlers, 
+    register_common_handlers,
     register_language_handlers,
     register_student_handlers,
     register_teacher_handlers,
@@ -27,6 +27,9 @@ from handlers import (
     register_manager_handlers,
     register_developer_handlers
 )
+from handlers.attendance_date import register_attendance_date_handlers
+from handlers.attendance_mark import register_attendance_mark_handlers
+from handlers.attendance_reasons import register_attendance_reason_handlers
 
 # Setup logging first
 setup_logging()
@@ -102,6 +105,11 @@ def main():
     register_leader_handlers(application)
     register_manager_handlers(application)
     register_developer_handlers(application)
+
+    # Phase 3 - Attendance handlers
+    register_attendance_date_handlers(application)
+    register_attendance_mark_handlers(application)
+    register_attendance_reason_handlers(application)
 
     # Add error handler
     application.add_error_handler(error_handler)

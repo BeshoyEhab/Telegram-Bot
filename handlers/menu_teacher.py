@@ -24,28 +24,12 @@ logger = logging.getLogger(__name__)
 @require_role(ROLE_TEACHER)
 async def mark_attendance_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Show attendance marking options.
+    Start attendance marking process.
     Callback: teacher_mark_attendance
     """
-    query = update.callback_query
-    await query.answer()
-    
-    lang = get_user_lang(context)
-    
-    message = f"✏️ {get_translation(lang, 'edit_attendance')}\n\n"
-    message += "⚙️ " + (get_translation(lang, 'feature_coming_soon') if lang == "en" else "هذه الميزة قادمة قريباً!")
-    message += "\n\n"
-    message += get_translation(lang, 'please_wait') if lang == "en" else "سيتم إضافتها في المرحلة 3"
-    
-    keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "back"),
-        callback_data="menu_main"
-    )]]
-    
-    await query.edit_message_text(
-        message,
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    # Redirect to attendance start
+    from handlers.attendance_date import start_attendance
+    await start_attendance(update, context)
 
 
 @require_role(ROLE_TEACHER)

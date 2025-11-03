@@ -1,12 +1,12 @@
 # =============================================================================
 # FILE: handlers/attendance_mark.py
-# DESCRIPTION: Attendance marking with toggle buttons interface
+# DESCRIPTION: Attendance marking with toggle buttons + reason support (Day 2)
 # LOCATION: handlers/attendance_mark.py
-# PURPOSE: Mark attendance with one-click toggle (Present ↔ Absent)
+# PURPOSE: Mark attendance with one-click toggle + absence reasons
 # =============================================================================
 
 """
-Attendance marking handlers with toggle button interface.
+Attendance marking handlers with toggle button interface and absence reasons.
 """
 
 import logging
@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 async def show_attendance_interface(update: Update, context: ContextTypes.DEFAULT_TYPE, date_str: str):
     """
     Show attendance marking interface with toggle buttons.
+    Now includes absence reasons display.
     
     Args:
         update: Telegram update
@@ -82,35 +83,55 @@ async def show_attendance_interface(update: Update, context: ContextTypes.DEFAUL
     # Count statistics
     present_count = sum(1 for s in students 
                        if context.user_data["attendance_changes"].get(s.id, {}).get('status', False))
+    absent_count = len(students) - present_count
     total = len(students)
     
-    message += f"📊 {present_count}/{total} " + get_translation(lang, 'present') + "\n\n"
+    message += f"📊 {present_count}/{total} " + get_translation(lang, 'present')
+    message += f" | {absent_count} " + get_translation(lang, 'absent') + "\n\n"
     
     # Instructions
-    message += "💡 " + get_translation(lang, 'att_instructions') + "\n\n"
+    message += "💡 " + get_translation(lang, 'att_instructions') + "\n"
+    message += "📝 " + get_translation(lang, 'click_absent_for_reason') + "\n\n"
     
     # Build keyboard with student toggle buttons
     keyboard = []
     
     for student in students:
-        student_status = context.user_data["attendance_changes"].get(student.id, {}).get('status', False)
+        student_data = context.user_data["attendance_changes"].get(student.id, {})
+        student_status = student_data.get('status', False)
+        student_note = student_data.get('note')
         
         if student_status:
             # Present - show checkmark
             button_text = f"✅ {student.name}"
         else:
-            # Absent - show X
-            button_text = f"❌ {student.name}"
+            # Absent - show X and reason if exists
+            if student_note:
+                # Truncate long reasons for button display
+                short_note = student_note[:15] + "..." if len(student_note) > 15 else student_note
+                button_text = f"❌ {student.name} • {short_note}"
+            else:
+                button_text = f"❌ {student.name}"
         
+        # Single toggle button per student
         keyboard.append([InlineKeyboardButton(
             button_text,
             callback_data=f"att_toggle_{student.id}_{date_str}"
         )])
+        
+        # If absent, add reason edit button
+        if not student_status:
+            keyboard.append([
+                InlineKeyboardButton(
+                    f"📝 {get_translation(lang, 'edit_reason')}",
+                    callback_data=f"att_reason_{student.id}_{date_str}"
+                )
+            ])
     
     # Add bulk action buttons
     keyboard.append([
         InlineKeyboardButton(
-            f"✓ {get_translation(lang, 'mark_all_present')}",
+            f"✔ {get_translation(lang, 'mark_all_present')}",
             callback_data=f"att_all_present_{date_str}"
         ),
         InlineKeyboardButton(
@@ -141,6 +162,7 @@ async def show_attendance_interface(update: Update, context: ContextTypes.DEFAUL
 async def toggle_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Toggle individual student attendance status.
+    If toggling to absent, optionally show reason menu.
     Callback: att_toggle_STUDENT_ID_DATE
     """
     query = update.callback_query
@@ -160,12 +182,24 @@ async def toggle_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if student_id not in context.user_data["attendance_changes"]:
         context.user_data["attendance_changes"][student_id] = {'status': False, 'note': None}
     
-    # Toggle
+    # Get current status
     current_status = context.user_data["attendance_changes"][student_id]['status']
-    context.user_data["attendance_changes"][student_id]['status'] = not current_status
     
-    # If toggling to absent, could show reason menu (Phase 3 Day 3)
-    # For now, just toggle and refresh
+    # Toggle
+    new_status = not current_status
+    context.user_data["attendance_changes"][student_id]['status'] = new_status
+    
+    # If toggling to absent AND no reason exists, could show reason menu
+    # For now, just toggle and let teacher click "Edit Reason" button if needed
+    if not new_status and not context.user_data["attendance_changes"][student_id].get('note'):
+        # Optionally auto-show reason menu
+        # await show_reason_menu(update, context)
+        # return
+        pass
+    
+    # If toggling to present, clear any absence reason
+    if new_status:
+        context.user_data["attendance_changes"][student_id]['note'] = None
     
     # Refresh the interface
     await show_attendance_interface(update, context, date_str)
@@ -187,7 +221,7 @@ async def mark_all_present(update: Update, context: ContextTypes.DEFAULT_TYPE):
     teacher = get_user_by_telegram_id(user_id)
     students = get_users_by_class(teacher.class_id)
     
-    # Mark all present
+    # Mark all present (clear reasons)
     for student in students:
         context.user_data["attendance_changes"][student.id] = {
             'status': True,
@@ -214,12 +248,15 @@ async def mark_all_absent(update: Update, context: ContextTypes.DEFAULT_TYPE):
     teacher = get_user_by_telegram_id(user_id)
     students = get_users_by_class(teacher.class_id)
     
-    # Mark all absent
+    # Mark all absent (keep existing reasons)
     for student in students:
-        context.user_data["attendance_changes"][student.id] = {
-            'status': False,
-            'note': None
-        }
+        if student.id not in context.user_data["attendance_changes"]:
+            context.user_data["attendance_changes"][student.id] = {
+                'status': False,
+                'note': None
+            }
+        else:
+            context.user_data["attendance_changes"][student.id]['status'] = False
     
     # Refresh interface
     await show_attendance_interface(update, context, date_str)
@@ -229,6 +266,7 @@ async def mark_all_absent(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def save_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Save all attendance changes to database.
+    Now includes absence reasons.
     Callback: att_save_DATE
     """
     query = update.callback_query
@@ -294,9 +332,17 @@ async def save_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     absent = len(changes) - present
     percentage = (present / len(changes) * 100) if changes else 0
     
+    # Count absences with reasons
+    absences_with_reason = sum(1 for data in changes.values() 
+                               if not data['status'] and data.get('note'))
+    
     message += f"\n📊 {get_translation(lang, 'statistics')}:\n"
     message += f"✅ {get_translation(lang, 'present')}: {present}\n"
     message += f"❌ {get_translation(lang, 'absent')}: {absent}\n"
+    
+    if absences_with_reason > 0:
+        message += f"📝 {get_translation(lang, 'with_reason')}: {absences_with_reason}\n"
+    
     message += f"📈 {get_translation(lang, 'attendance_rate')}: {percentage:.1f}%"
     
     keyboard = [[InlineKeyboardButton(

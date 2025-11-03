@@ -12,7 +12,7 @@ All attendance and class-related dates must be Saturdays.
 
 from calendar import monthrange
 from datetime import date, datetime, timedelta
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 import pytz
 
@@ -263,17 +263,23 @@ def get_last_n_saturdays(n: int, from_date: Optional[date] = None) -> List[date]
     return saturdays
 
 
-def format_date_with_day(date_obj: date, language: str = "ar") -> str:
+def format_date_with_day(date_obj: Union[str, date], language: str = "ar") -> str:
     """
     Format date with day name.
 
     Args:
-        date_obj: Date to format
+        date_obj: Date to format (string in YYYY-MM-DD or date object)
         language: Language code ('ar' or 'en')
 
     Returns:
         Formatted date string with day name
     """
+    if isinstance(date_obj, str):
+        try:
+            date_obj = datetime.strptime(date_obj, "%Y-%m-%d").date()
+        except ValueError:
+            raise ValueError(f"Invalid date format: {date_obj}")
+
     date_str = date_obj.strftime("%Y-%m-%d")
 
     if language == "ar":

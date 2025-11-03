@@ -213,6 +213,14 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # Birthday Format
         'birthday_format': 'Format: YYYY-MM-DD',
         'birthday_example': 'Example: 2005-03-15',
+
+        # Phase 3 Day 2 - Attendance Reasons
+        'edit_reason': 'Edit Reason',
+        'with_reason': 'With Reason',
+        'click_absent_for_reason': 'Click Edit Reason to add absence details',
+        'att_instructions': 'Click student name to toggle status',
+        'deleted': 'Deleted',
+        'saved': 'Saved',
     },
     
     'ar': {
@@ -414,6 +422,14 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # Birthday Format
         'birthday_format': 'الصيغة: سنة-شهر-يوم',
         'birthday_example': 'مثال: 2005-03-15',
+
+        # Phase 3 Day 2 - Attendance Reasons
+        'edit_reason': 'تعديل السبب',
+        'with_reason': 'بسبب',
+        'click_absent_for_reason': 'اضغط تعديل السبب لإضافة تفاصيل الغياب',
+        'att_instructions': 'اضغط على اسم الطالب لتغيير الحالة',
+        'deleted': 'تم الحذف',
+        'saved': 'تم الحفظ',
     }
 }
 
