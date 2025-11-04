@@ -87,7 +87,7 @@ async def start_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Back button
     keyboard.append([InlineKeyboardButton(
-        get_translation(lang, "back"),
+        f"⬅️ {get_translation(lang, 'back')}",
         callback_data="back_main"
     )])
     
@@ -155,7 +155,7 @@ async def manual_date_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message += "⚠️ " + get_translation(lang, 'select_saturday')
     
     keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "cancel"),
+        f"❌ {get_translation(lang, 'cancel')}",
         callback_data="attendance_start"
     )]]
     
@@ -200,28 +200,28 @@ async def receive_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["selected_date"] = date_input
     
     # Show loading
-    await update.message.reply_text(
+    loading_message = await update.message.reply_text(
         f"⚙️ {get_translation(lang, 'loading')}...\n\n"
         f"📅 {format_date_with_day(date_input, lang)}"
     )
-    
+
     # Import here to avoid circular imports
     from handlers.attendance_mark import show_attendance_interface
-    
+
     # Show attendance interface
     # Create a pseudo-update object for the interface
     from telegram import CallbackQuery
     pseudo_query = type('obj', (object,), {
-        'message': update.message,
+        'message': loading_message,
         'answer': lambda x='', show_alert=False: None,
-        'edit_message_text': update.message.edit_text
+        'edit_message_text': loading_message.edit_text
     })()
-    
+
     pseudo_update = type('obj', (object,), {
         'callback_query': pseudo_query,
         'effective_user': update.effective_user
     })()
-    
+
     await show_attendance_interface(pseudo_update, context, date_input)
 
 

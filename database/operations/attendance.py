@@ -20,7 +20,7 @@ from utils import validate_note, validate_saturday
 
 def mark_attendance(
     user_id: int,
-    class_id: int,
+    class_id: Optional[int],
     attendance_date: str,
     status: bool,
     marked_by: int,
@@ -55,17 +55,30 @@ def mark_attendance(
     try:
         with get_db() as db:
             # Check if attendance already exists
-            existing = (
-                db.query(Attendance)
-                .filter(
-                    and_(
-                        Attendance.user_id == user_id,
-                        Attendance.class_id == class_id,
-                        Attendance.date == date_obj,
+            if class_id is None:
+                existing = (
+                    db.query(Attendance)
+                    .filter(
+                        and_(
+                            Attendance.user_id == user_id,
+                            Attendance.class_id.is_(None),
+                            Attendance.date == date_obj,
+                        )
                     )
+                    .first()
                 )
-                .first()
-            )
+            else:
+                existing = (
+                    db.query(Attendance)
+                    .filter(
+                        and_(
+                            Attendance.user_id == user_id,
+                            Attendance.class_id == class_id,
+                            Attendance.date == date_obj,
+                        )
+                    )
+                    .first()
+                )
 
             if existing:
                 # Update existing
@@ -99,7 +112,7 @@ def mark_attendance(
 
 
 def get_attendance(
-    user_id: int, class_id: int, attendance_date: str
+    user_id: int, class_id: Optional[int], attendance_date: str
 ) -> Optional[Attendance]:
     """
     Get attendance record for a user on a specific date.
@@ -117,17 +130,30 @@ def get_attendance(
         return None
 
     with get_db() as db:
-        attendance = (
-            db.query(Attendance)
-            .filter(
-                and_(
-                    Attendance.user_id == user_id,
-                    Attendance.class_id == class_id,
-                    Attendance.date == date_obj,
+        if class_id is None:
+            attendance = (
+                db.query(Attendance)
+                .filter(
+                    and_(
+                        Attendance.user_id == user_id,
+                        Attendance.class_id.is_(None),
+                        Attendance.date == date_obj,
+                    )
                 )
+                .first()
             )
-            .first()
-        )
+        else:
+            attendance = (
+                db.query(Attendance)
+                .filter(
+                    and_(
+                        Attendance.user_id == user_id,
+                        Attendance.class_id == class_id,
+                        Attendance.date == date_obj,
+                    )
+                )
+                .first()
+            )
         if attendance:
             # FIX: Expunge before returning
             db.expunge(attendance)
@@ -374,6 +400,37 @@ def get_consecutive_absences(user_id: int, class_id: int) -> int:
                 break
 
         return consecutive
+
+def get_attendance_stats_by_class(class_id: int) -> Dict:
+    """
+    Get attendance statistics for a class, including reason breakdown.
+
+    Args:
+        class_id: The ID of the class.
+
+    Returns:
+        A dictionary containing attendance statistics.
+    """
+    with get_db() as db:
+        # Get all attendance records for the class
+        records = db.query(Attendance).filter_by(class_id=class_id).all()
+
+        total_absent = 0
+        total_with_reason = 0
+        reason_breakdown = {}
+
+        for record in records:
+            if not record.status:
+                total_absent += 1
+                if record.note:
+                    total_with_reason += 1
+                    reason_breakdown[record.note] = reason_breakdown.get(record.note, 0) + 1
+
+        return {
+            "total_absent": total_absent,
+            "total_with_reason": total_with_reason,
+            "reason_breakdown": reason_breakdown,
+        }
 
 
 def delete_attendance(

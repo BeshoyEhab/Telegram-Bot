@@ -21,6 +21,7 @@ from database.operations.attendance import (
     get_consecutive_absences,
     get_user_attendance_history,
     mark_attendance,
+    get_attendance_stats_by_class,
 )
 
 # User operations
@@ -61,4 +62,5 @@ __all__ = [
     "count_attendance",
     "get_consecutive_absences",
     "delete_attendance",
+    "get_attendance_stats_by_class",
 ]

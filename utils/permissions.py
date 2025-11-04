@@ -27,26 +27,31 @@ from database import User, get_db
 from utils.translations import get_translation
 
 
-def get_user_from_db(telegram_id: int) -> Optional[User]:
+def get_user_from_db(telegram_id: int, db=None) -> Optional[User]:
     """
     Get user from database by Telegram ID.
 
     Args:
         telegram_id: Telegram user ID
+        db: Optional SQLAlchemy session object
 
     Returns:
         User object or None
     """
-    with get_db() as db:
+    if db:
         return db.query(User).filter_by(telegram_id=telegram_id).first()
+    else:
+        with get_db() as new_db:
+            return new_db.query(User).filter_by(telegram_id=telegram_id).first()
 
 
-def get_user_role(telegram_id: int) -> Optional[int]:
+def get_user_role(telegram_id: int, db=None) -> Optional[int]:
     """
     Get user role from config or database.
 
     Args:
         telegram_id: Telegram user ID
+        db: Optional SQLAlchemy session object
 
     Returns:
         Role number (1-5) or None if not authorized
@@ -56,19 +61,20 @@ def get_user_role(telegram_id: int) -> Optional[int]:
         return AUTHORIZED_USERS[telegram_id][0]  # Returns role
 
     # Then check database
-    user = get_user_from_db(telegram_id)
+    user = get_user_from_db(telegram_id, db)
     if user:
         return user.role
 
     return None
 
 
-def get_user_class(telegram_id: int) -> Optional[int]:
+def get_user_class(telegram_id: int, db=None) -> Optional[int]:
     """
     Get user's primary class ID.
 
     Args:
         telegram_id: Telegram user ID
+        db: Optional SQLAlchemy session object
 
     Returns:
         Class ID or None
@@ -78,7 +84,7 @@ def get_user_class(telegram_id: int) -> Optional[int]:
         return AUTHORIZED_USERS[telegram_id][1]  # Returns class_id
 
     # Check database
-    user = get_user_from_db(telegram_id)
+    user = get_user_from_db(telegram_id, db)
     if user:
         return user.class_id
 
@@ -364,20 +370,26 @@ def require_role(min_role: int):
     return decorator
 
 
-def get_user_language(telegram_id: int) -> str:
+def get_user_language(telegram_id: int, db=None) -> str:
     """
     Get user's preferred language.
 
     Args:
         telegram_id: Telegram user ID
+        db: Optional SQLAlchemy session object
 
     Returns:
         Language code ('ar' or 'en')
     """
-    with get_db() as db:
+    if db:
         user = db.query(User).filter(User.telegram_id == telegram_id).first()
         if user and user.language_preference:
             return user.language_preference
+    else:
+        with get_db() as new_db:
+            user = new_db.query(User).filter(User.telegram_id == telegram_id).first()
+            if user and user.language_preference:
+                return user.language_preference
     
     return "ar"  # Default to Arabic
 

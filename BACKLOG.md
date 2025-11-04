@@ -979,6 +979,25 @@ telegram_school_bot/
    - Test files match source: `test_<module>.py`
    - Descriptive test names: `test_normalize_phone_standard()`
 
+### Role-Based Data Visibility:
+
+1. **Table Types**
+   - Two types of data tables: Student tables and Teacher tables
+   - Student tables show student-related data (e.g., student attendance, student lists)
+   - Teacher tables show teacher-related data (e.g., teacher attendance, teacher lists)
+
+2. **Visibility Rules**
+   - Higher roles can see lower role data
+   - Same roles cannot see each other's data
+   - Example hierarchy: Developer (5) > Manager (4) > Leader (3) > Teacher (2) > Student (1)
+   - A teacher can see student data but not other teachers' data
+   - A leader can see teacher and student data but not other leaders' data
+
+3. **Teacher Exclusion**
+   - Teachers should not appear in tables where their own data would be displayed
+   - Teachers do not mark or view their own attendance
+   - Teachers only interact with student data in their class
+
 ### File Organization:
 
 ```

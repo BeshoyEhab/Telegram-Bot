@@ -75,7 +75,7 @@ async def show_reason_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             callback_data=f"reason_custom_{student_id}_{date_str}"
         )],
         [InlineKeyboardButton(
-            get_translation(lang, 'cancel'),
+            f"❌ {get_translation(lang, 'cancel')}",
             callback_data=f"att_date_{date_str}"
         )]
     ]
@@ -167,7 +167,7 @@ async def request_custom_reason(update: Update, context: ContextTypes.DEFAULT_TY
     message += get_translation(lang, 'enter_custom_reason')
     
     keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "cancel"),
+        f"❌ {get_translation(lang, 'cancel')}",
         callback_data=f"att_date_{date_str}"
     )]]
     

@@ -18,6 +18,7 @@ from telegram.ext import ContextTypes
 
 from config import AUTHORIZED_USERS
 from utils import get_translation, get_user_role, is_authorized
+from database import get_db
 from database.operations import create_user, get_user_by_telegram_id
 
 logger = logging.getLogger(__name__)
@@ -105,7 +106,8 @@ def require_auth(func: Callable) -> Callable:
         
         # Store user info in context for easy access
         context.user_data["telegram_id"] = user.id
-        context.user_data["role"] = get_user_role(user.id)
+        with get_db() as db:
+            context.user_data["role"] = get_user_role(user.id, db)
         
         return await func(update, context, *args, **kwargs)
     
@@ -135,7 +137,8 @@ def require_role(min_role: int):
             # Auto-register if needed
             await auto_register_user_if_needed(user.id, user)
             
-            user_role = get_user_role(user.id)
+            with get_db() as db:
+                user_role = get_user_role(user.id, db)
             
             if user_role is None or user_role < min_role:
                 lang = context.user_data.get("language", "ar")
@@ -168,12 +171,14 @@ async def load_user_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Load language preference if not already set
     if "language" not in context.user_data:
         from utils import get_user_language
-        context.user_data["language"] = get_user_language(user.id)
+        with get_db() as db:
+            context.user_data["language"] = get_user_language(user.id, db)
     
     # Load user info
     if "telegram_id" not in context.user_data:
         context.user_data["telegram_id"] = user.id
-        context.user_data["role"] = get_user_role(user.id)
+        with get_db() as db:
+            context.user_data["role"] = get_user_role(user.id, db)
 
 
 def get_user_lang(context: ContextTypes.DEFAULT_TYPE) -> str:

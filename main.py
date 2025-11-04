@@ -30,6 +30,8 @@ from handlers import (
 from handlers.attendance_date import register_attendance_date_handlers
 from handlers.attendance_mark import register_attendance_mark_handlers
 from handlers.attendance_reasons import register_attendance_reason_handlers
+from handlers.attendance_confirm import register_attendance_confirm_handlers
+from handlers.attendance_stats import register_attendance_stats_handlers
 
 # Setup logging first
 setup_logging()
@@ -110,6 +112,8 @@ def main():
     register_attendance_date_handlers(application)
     register_attendance_mark_handlers(application)
     register_attendance_reason_handlers(application)
+    register_attendance_confirm_handlers(application)
+    register_attendance_stats_handlers(application)
 
     # Add error handler
     application.add_error_handler(error_handler)

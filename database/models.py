@@ -136,7 +136,7 @@ class Attendance(Base):
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=True)
     date = Column(Date, nullable=False, index=True)  # Must be Saturday
     status = Column(Boolean, nullable=False)  # True=Present, False=Absent
     note = Column(String(100), nullable=True)  # Absence reason

@@ -45,6 +45,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'leader': 'Leader',
         'manager': 'Manager',
         'developer': 'Developer',
+        'students': 'Students',
+        'teachers': 'Teachers',
         
         # Main Menu
         'welcome': 'Welcome!',
@@ -52,49 +54,49 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'language_selected': 'Language set to English',
         
         # Student Menu
-        'check_attendance': '📊 Check Attendance',
-        'my_details': '👤 My Details',
-        'my_statistics': '📈 My Statistics',
+        'check_attendance': 'Check Attendance',
+        'my_details': 'My Details',
+        'my_statistics': 'My Statistics',
         
         # Teacher/Leader Menu
-        'edit_attendance': '✏️ Edit Attendance',
-        'student_details': '👥 Student Details',
-        'teacher_details': '👥 Teacher Details',
-        'class_statistics': '📊 Class Statistics',
-        'search_student': '🔍 Search Student',
-        'bulk_actions': '📋 Bulk Actions',
-        'export_data': '📤 Export Data',
-        'add_student': '➕ Add Student',
-        'remove_student': '➖ Remove Student',
-        'edit_student_details': '✏️ Edit Student Details',
+        'edit_attendance': 'Edit Attendance',
+        'student_details': 'Student Details',
+        'teacher_details': 'Teacher Details',
+        'class_statistics': 'Class Statistics',
+        'search_student': 'Search Student',
+        'bulk_actions': 'Bulk Actions',
+        'export_data': 'Export Data',
+        'add_student': 'Add Student',
+        'remove_student': 'Remove Student',
+        'edit_student_details': 'Edit Student Details',
         
         # Manager/Developer Menu
-        'broadcast_message': '📢 Broadcast Message',
-        'create_backup': '💾 Create Backup',
-        'export_logs': '📋 Export Logs',
-        'mimic_mode': '🎭 Mimic Mode',
-        'analytics': '📊 Analytics',
-        'manage_backups': '💾 Manage Backups',
-        'system_management': '⚙️ System Management',
+        'broadcast_message': 'Broadcast Message',
+        'create_backup': 'Create Backup',
+        'export_logs': 'Export Logs',
+        'mimic_mode': 'Mimic Mode',
+        'analytics': 'Analytics',
+        'manage_backups': 'Manage Backups',
+        'system_management': 'System Management',
         
         # Common Actions
-        'undo_last': '↩️ Undo Last',
-        'switch_language': '🌐 Switch Language',
-        'help': '❓ Help',
+        'undo_last': 'Undo Last',
+        'switch_language': 'Switch Language',
+        'help': 'Help',
         
         # Attendance
         'present': 'Present',
         'absent': 'Absent',
-        'mark_all_present': '✓ Mark All Present',
-        'mark_all_absent': '✗ Mark All Absent',
-        'attendance_saved': '✅ Attendance saved successfully!',
+        'mark_all_present': 'Mark All Present',
+        'mark_all_absent': 'Mark All Absent',
+        'attendance_saved': 'Attendance saved successfully!',
         'attendance_for': 'Attendance for',
         
         # Absence Reasons
-        'sick': '🤒 Sick',
-        'travel': '✈️ Travel',
-        'excused': '📋 Excused',
-        'custom': '✏️ Custom',
+        'sick': 'Sick',
+        'travel': 'Travel',
+        'excused': 'Excused',
+        'custom': 'Custom',
         'select_reason': 'Select Reason',
         'enter_custom_reason': 'Enter absence reason (max 100 characters):',
         
@@ -102,7 +104,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'last_saturday': 'Last Saturday',
         'this_saturday': 'This Saturday',
         'next_saturday': 'Next Saturday',
-        'choose_date': '📅 Choose Date',
+        'choose_date': 'Choose Date',
         'select_saturday': 'Select Saturday',
         
         # Statistics
@@ -142,14 +144,14 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         
         # Errors
         'error': 'Error',
-        'error_occurred': '❌ An error occurred. Please try again later.',
-        'no_permission': '❌ You don\'t have permission to perform this action.',
-        'not_saturday': '⚠️ No class today. Next class: Saturday {date}',
-        'invalid_date_format': '❌ Invalid date format. Please use: YYYY-MM-DD',
-        'session_expired': '🔒 Session expired. Press /start to log in again.',
-        'rate_limit': '⚠️ Too many requests. Please wait 30 seconds.',
-        'user_not_found': '❌ User not found.',
-        'class_not_found': '❌ Class not found.',
+        'error_occurred': 'An error occurred. Please try again later.',
+        'no_permission': 'You don\'t have permission to perform this action.',
+        'not_saturday': 'No class today. Next class: Saturday {date}',
+        'invalid_date_format': 'Invalid date format. Please use: YYYY-MM-DD',
+        'session_expired': 'Session expired. Press /start to log in again.',
+        'rate_limit': 'Too many requests. Please wait 30 seconds.',
+        'user_not_found': 'User not found.',
+        'class_not_found': 'Class not found.',
         
         # Validation Errors
         'phone_required': 'Phone number is required',
@@ -182,21 +184,21 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'role_invalid_range': 'Role must be between 1 and 5',
         
         # Success Messages
-        'student_added': '✅ Student added successfully!',
-        'student_removed': '✅ Student removed successfully!',
-        'student_updated': '✅ Student details updated successfully!',
-        'backup_created': '✅ Backup created successfully!',
-        'broadcast_sent': '✅ Broadcast sent successfully!',
-        'undo_success': '✅ Action undone successfully!',
+        'student_added': 'Student added successfully!',
+        'student_removed': 'Student removed successfully!',
+        'student_updated': 'Student details updated successfully!',
+        'backup_created': 'Backup created successfully!',
+        'broadcast_sent': 'Broadcast sent successfully!',
+        'undo_success': 'Action undone successfully!',
         
         # Notifications
-        'friday_reminder': '🔔 Reminder: Tomorrow is Saturday, class day! See you at {time}',
-        'saturday_morning_reminder': '🔔 Good morning! Class starts in 2 hours. Don\'t forget to mark attendance.',
-        'saturday_evening_reminder': '⚠️ Reminder: You haven\'t marked attendance yet for today\'s class.',
-        'absence_alert': '🚨 Absence Alert: {name} has been absent for {count} consecutive weeks.',
-        'birthday_today': '🎉 Happy Birthday {name}! Turning {age} today',
-        'birthday_tomorrow': '🎂 Tomorrow is {name}\'s birthday ({age})',
-        'birthday_soon': '🎂 {name}\'s birthday in {days} days ({age})',
+        'friday_reminder': 'Reminder: Tomorrow is Saturday, class day! See you at {time}',
+        'saturday_morning_reminder': 'Good morning! Class starts in 2 hours. Don\'t forget to mark attendance.',
+        'saturday_evening_reminder': 'Reminder: You haven\'t marked attendance yet for today\'s class.',
+        'absence_alert': 'Absence Alert: {name} has been absent for {count} consecutive weeks.',
+        'birthday_today': 'Happy Birthday {name}! Turning {age} today',
+        'birthday_tomorrow': 'Tomorrow is {name}\'s birthday ({age})',
+        'birthday_soon': '{name}\'s birthday in {days} days ({age})',
         
         # Authorization
         'not_authorized': 'You are not authorized to use this bot.',
@@ -221,6 +223,15 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'att_instructions': 'Click student name to toggle status',
         'deleted': 'Deleted',
         'saved': 'Saved',
+
+        # Phase 3 Day 3 - Confirmations
+        'confirm_action': 'Confirm Action',
+        'confirm_mark_all_present': 'Are you sure you want to mark all {count} users as present?',
+        'confirm_mark_all_absent': 'Are you sure you want to mark all {count} users as absent?',
+
+        # Phase 3 Day 3 - Statistics
+        'reason_statistics': 'Reason Statistics',
+        'no_absences_to_analyze': 'No absences to analyze.',
     },
     
     'ar': {
@@ -254,6 +265,8 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'leader': 'قائد الفصل',
         'manager': 'المدير',
         'developer': 'مشرف البوت',
+        'students': 'المخدومين',
+        'teachers': 'الخدام',
         
         # Main Menu
         'welcome': 'مرحباً!',
@@ -261,49 +274,49 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'language_selected': 'تم تعيين اللغة إلى العربية',
         
         # Student Menu
-        'check_attendance': '📊 فحص الحضور',
-        'my_details': '👤 بياناتي',
-        'my_statistics': '📈 إحصائياتي',
+        'check_attendance': 'فحص الحضور',
+        'my_details': 'بياناتي',
+        'my_statistics': 'إحصائياتي',
         
         # Teacher/Leader Menu
-        'edit_attendance': '✏️ تعديل الحضور',
-        'student_details': '👥 بيانات المخدومين',
-        'teacher_details': '👥 بيانات الخدام',
-        'class_statistics': '📊 إحصائيات الفصل',
-        'search_student': '🔍 بحث عن مخدوم',
-        'bulk_actions': '📋 عمليات جماعية',
-        'export_data': '📤 تصدير البيانات',
-        'add_student': '➕ إضافة مخدوم',
-        'remove_student': '➖ حذف مخدوم',
-        'edit_student_details': '✏️ تعديل البيانات',
+        'edit_attendance': 'تعديل الحضور',
+        'student_details': 'بيانات المخدومين',
+        'teacher_details': 'بيانات الخدام',
+        'class_statistics': 'إحصائيات الفصل',
+        'search_student': 'بحث عن مخدوم',
+        'bulk_actions': 'عمليات جماعية',
+        'export_data': 'تصدير البيانات',
+        'add_student': 'إضافة مخدوم',
+        'remove_student': 'حذف مخدوم',
+        'edit_student_details': 'تعديل البيانات',
         
         # Manager/Developer Menu
-        'broadcast_message': '📢 إرسال إعلان',
-        'create_backup': '💾 نسخ احتياطي',
-        'export_logs': '📋 تصدير السجلات',
-        'mimic_mode': '🎭 وضع التقليد',
-        'analytics': '📊 التحليلات',
-        'manage_backups': '💾 إدارة النسخ الاحتياطية',
-        'system_management': '⚙️ إدارة النظام',
+        'broadcast_message': 'إرسال إعلان',
+        'create_backup': 'نسخ احتياطي',
+        'export_logs': 'تصدير السجلات',
+        'mimic_mode': 'وضع التقليد',
+        'analytics': 'التحليلات',
+        'manage_backups': 'إدارة النسخ الاحتياطية',
+        'system_management': 'إدارة النظام',
         
         # Common Actions
-        'undo_last': '↩️ تراجع',
-        'switch_language': '🌐 تغيير اللغة',
-        'help': '❓ مساعدة',
+        'undo_last': 'تراجع',
+        'switch_language': 'تغيير اللغة',
+        'help': 'مساعدة',
         
         # Attendance
         'present': 'حاضر',
         'absent': 'غائب',
-        'mark_all_present': '✓ تحديد الكل حاضر',
-        'mark_all_absent': '✗ تحديد الكل غائب',
-        'attendance_saved': '✅ تم حفظ الحضور بنجاح!',
+        'mark_all_present': 'تحديد الكل حاضر',
+        'mark_all_absent': 'تحديد الكل غائب',
+        'attendance_saved': 'تم حفظ الحضور بنجاح!',
         'attendance_for': 'الحضور لـ',
         
         # Absence Reasons
-        'sick': '🤒 مريض',
-        'travel': '✈️ سفر',
-        'excused': '📋 معذور',
-        'custom': '✏️ سبب آخر',
+        'sick': 'مريض',
+        'travel': 'سفر',
+        'excused': 'معذور',
+        'custom': 'سبب آخر',
         'select_reason': 'اختر السبب',
         'enter_custom_reason': 'أدخل سبب الغياب (حد أقصى 100 حرف):',
         
@@ -311,7 +324,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'last_saturday': 'السبت الماضي',
         'this_saturday': 'هذا السبت',
         'next_saturday': 'السبت القادم',
-        'choose_date': '📅 اختر التاريخ',
+        'choose_date': 'اختر التاريخ',
         'select_saturday': 'اختر السبت',
         
         # Statistics
@@ -351,14 +364,14 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         
         # Errors
         'error': 'خطأ',
-        'error_occurred': '❌ حدث خطأ. يرجى المحاولة مرة أخرى لاحقاً.',
-        'no_permission': '❌ ليس لديك صلاحية لتنفيذ هذا الإجراء.',
-        'not_saturday': '⚠️ لا يوجد فصل اليوم. الفصل القادم: السبت {date}',
-        'invalid_date_format': '❌ صيغة التاريخ خاطئة. يرجى استخدام: سنة-شهر-يوم',
-        'session_expired': '🔒 انتهت الجلسة. اضغط /start لتسجيل الدخول مرة أخرى.',
-        'rate_limit': '⚠️ طلبات كثيرة جداً. يرجى الانتظار 30 ثانية.',
-        'user_not_found': '❌ المستخدم غير موجود.',
-        'class_not_found': '❌ الفصل غير موجود.',
+        'error_occurred': 'حدث خطأ. يرجى المحاولة مرة أخرى لاحقاً.',
+        'no_permission': 'ليس لديك صلاحية لتنفيذ هذا الإجراء.',
+        'not_saturday': 'لا يوجد فصل اليوم. الفصل القادم: السبت {date}',
+        'invalid_date_format': 'صيغة التاريخ خاطئة. يرجى استخدام: سنة-شهر-يوم',
+        'session_expired': 'انتهت الجلسة. اضغط /start لتسجيل الدخول مرة أخرى.',
+        'rate_limit': 'طلبات كثيرة جداً. يرجى الانتظار 30 ثانية.',
+        'user_not_found': 'المستخدم غير موجود.',
+        'class_not_found': 'الفصل غير موجود.',
         
         # Validation Errors
         'phone_required': 'رقم الهاتف مطلوب',
@@ -391,21 +404,21 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'role_invalid_range': 'الدور يجب أن يكون بين 1 و 5',
         
         # Success Messages
-        'student_added': '✅ تمت إضافة المخدوم بنجاح!',
-        'student_removed': '✅ تم حذف المخدوم بنجاح!',
-        'student_updated': '✅ تم تحديث بيانات المخدوم بنجاح!',
-        'backup_created': '✅ تم إنشاء النسخة الاحتياطية بنجاح!',
-        'broadcast_sent': '✅ تم إرسال الإعلان بنجاح!',
-        'undo_success': '✅ تم التراجع عن الإجراء بنجاح!',
+        'student_added': 'تمت إضافة المخدوم بنجاح!',
+        'student_removed': 'تم حذف المخدوم بنجاح!',
+        'student_updated': 'تم تحديث بيانات المخدوم بنجاح!',
+        'backup_created': 'تم إنشاء النسخة الاحتياطية بنجاح!',
+        'broadcast_sent': 'تم إرسال الإعلان بنجاح!',
+        'undo_success': 'تم التراجع عن الإجراء بنجاح!',
         
         # Notifications
-        'friday_reminder': '🔔 تذكير: غداً السبت يوم الدراسة! نراكم الساعة {time}',
-        'saturday_morning_reminder': '🔔 صباح الخير! الفصل يبدأ خلال ساعتين. لا تنسى تسجيل الحضور.',
-        'saturday_evening_reminder': '⚠️ تذكير: لم تسجل الحضور بعد لفصل اليوم.',
-        'absence_alert': '🚨 تنبيه غياب: {name} غائب لمدة {count} أسابيع متتالية.',
-        'birthday_today': '🎉 عيد ميلاد سعيد {name}! يبلغ {age} اليوم',
-        'birthday_tomorrow': '🎂 غداً عيد ميلاد {name} ({age})',
-        'birthday_soon': '🎂 عيد ميلاد {name} بعد {days} أيام ({age})',
+        'friday_reminder': 'تذكير: غداً السبت يوم الدراسة! نراكم الساعة {time}',
+        'saturday_morning_reminder': 'صباح الخير! الفصل يبدأ خلال ساعتين. لا تنسى تسجيل الحضور.',
+        'saturday_evening_reminder': 'تذكير: لم تسجل الحضور بعد لفصل اليوم.',
+        'absence_alert': 'تنبيه غياب: {name} غائب لمدة {count} أسابيع متتالية.',
+        'birthday_today': 'عيد ميلاد سعيد {name}! يبلغ {age} اليوم',
+        'birthday_tomorrow': 'غداً عيد ميلاد {name} ({age})',
+        'birthday_soon': 'عيد ميلاد {name} بعد {days} أيام ({age})',
         
         # Authorization
         'not_authorized': 'أنت غير مصرح لك باستخدام هذا البوت.',
@@ -430,6 +443,15 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'att_instructions': 'اضغط على اسم الطالب لتغيير الحالة',
         'deleted': 'تم الحذف',
         'saved': 'تم الحفظ',
+
+        # Phase 3 Day 3 - Confirmations
+        'confirm_action': 'تأكيد الإجراء',
+        'confirm_mark_all_present': 'هل أنت متأكد أنك تريد تحديد كل الـ {count} مستخدمين كحاضرين؟',
+        'confirm_mark_all_absent': 'هل أنت متأكد أنك تريد تحديد كل الـ {count} مستخدمين كغائبين؟',
+
+        # Phase 3 Day 3 - Statistics
+        'reason_statistics': 'إحصائيات الأسباب',
+        'no_absences_to_analyze': 'لا توجد غيابات لتحليلها.',
     }
 }
 
