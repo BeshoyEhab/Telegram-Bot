@@ -14,8 +14,8 @@ from datetime import date, timedelta
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, CallbackQueryHandler, ConversationHandler, MessageHandler, filters
 
-from config import ROLE_TEACHER
-from middleware.auth import require_role, get_user_lang
+from config import ROLE_STUDENT
+from middleware.auth import require_role, get_user_lang, get_user_by_telegram_id
 from utils import (
     get_translation,
     get_last_saturday,
@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 WAITING_FOR_DATE = 1
 
 
-@require_role(ROLE_TEACHER)
+@require_role(ROLE_STUDENT + 1)
 async def start_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Start attendance marking - show date selection.
@@ -41,6 +41,16 @@ async def start_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     lang = get_user_lang(context)
+    
+    # Get user
+    user_id = context.user_data.get("telegram_id")
+    user = get_user_by_telegram_id(user_id)
+    
+    if not user:
+        await query.edit_message_text(
+            get_translation(lang, "access_denied")
+        )
+        return
     
     # Get Saturday dates
     today = date.today()
@@ -55,7 +65,10 @@ async def start_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         next_sat = this_sat + timedelta(days=7)
     
     # Build message
-    message = f"✏️ {get_translation(lang, 'edit_attendance')}\n\n"
+    if user.role == 1:  # Student
+        message = f"👁️ {get_translation(lang, 'my_attendance')}\n\n"
+    else:
+        message = f"✏️ {get_translation(lang, 'edit_attendance')}\n\n"
     message += f"📅 {get_translation(lang, 'select_saturday')}"
     
     # Build keyboard with quick date options
@@ -63,31 +76,31 @@ async def start_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Last Saturday button
     keyboard.append([InlineKeyboardButton(
-        f"⏮️ {get_translation(lang, 'last_saturday')} ({last_sat.strftime('%Y-%m-%d')})",
+        f"{get_translation(lang, 'btn_last_saturday')} ({last_sat.strftime('%Y-%m-%d')})",
         callback_data=f"att_date_{last_sat.strftime('%Y-%m-%d')}"
     )])
     
     # This Saturday (if it's today or upcoming)
     if is_saturday(today):
         keyboard.append([InlineKeyboardButton(
-            f"📍 {get_translation(lang, 'this_saturday')} ({this_sat.strftime('%Y-%m-%d')})",
+            f"{get_translation(lang, 'btn_this_saturday')} ({this_sat.strftime('%Y-%m-%d')})",
             callback_data=f"att_date_{this_sat.strftime('%Y-%m-%d')}"
         )])
     else:
         keyboard.append([InlineKeyboardButton(
-            f"⏭️ {get_translation(lang, 'next_saturday')} ({this_sat.strftime('%Y-%m-%d')})",
+            f"{get_translation(lang, 'btn_next_saturday')} ({this_sat.strftime('%Y-%m-%d')})",
             callback_data=f"att_date_{this_sat.strftime('%Y-%m-%d')}"
         )])
     
     # Manual date entry button
     keyboard.append([InlineKeyboardButton(
-        f"📅 {get_translation(lang, 'choose_date')}",
+        get_translation(lang, 'btn_choose_date'),
         callback_data="att_date_manual"
     )])
     
     # Back button
     keyboard.append([InlineKeyboardButton(
-        f"⬅️ {get_translation(lang, 'back')}",
+        get_translation(lang, 'btn_back'),
         callback_data="back_main"
     )])
     
@@ -97,7 +110,7 @@ async def start_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-@require_role(ROLE_TEACHER)
+@require_role(ROLE_STUDENT + 1)
 async def date_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle date selection.
@@ -137,7 +150,7 @@ async def date_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_attendance_interface(update, context, date_str)
 
 
-@require_role(ROLE_TEACHER)
+@require_role(ROLE_STUDENT + 1)
 async def manual_date_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle manual date entry request.
@@ -168,7 +181,7 @@ async def manual_date_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["conversation_state"] = WAITING_FOR_DATE
 
 
-@require_role(ROLE_TEACHER)
+@require_role(ROLE_STUDENT + 1)
 async def receive_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Receive manually entered date.

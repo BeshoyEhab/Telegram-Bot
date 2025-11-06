@@ -52,14 +52,58 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'welcome': 'Welcome!',
         'choose_language': 'Choose your language',
         'language_selected': 'Language set to English',
+        'edit_language': 'Edit Language',
+        'select_language': 'Select Language',
+        'current_language': 'Current Language',
+        'language_updated_success': 'Language Updated Successfully!',
+        'new_language': 'New Language',
+        'restart_needed': 'Some features may require a restart to take full effect.',
+        
+        # Button Emojis
+        'btn_yes': '✅ Yes',
+        'btn_no': '❌ No',
+        'btn_ok': '✅ OK',
+        'btn_cancel': '❌ Cancel',
+        'btn_back': '⬅️ Back',
+        'btn_next': '➡️ Next',
+        'btn_save': '💾 Save',
+        'btn_delete': '🗑️ Delete',
+        'btn_edit': '✏️ Edit',
+        'btn_confirm': '✅ Confirm',
+        'btn_close': '❌ Close',
         
         # Student Menu
         'check_attendance': 'Check Attendance',
         'my_details': 'My Details',
         'my_statistics': 'My Statistics',
+        'my_attendance': 'My Attendance',
+        'class_members': 'Class Members',
+        
+        # Menu Button Emojis
+        'btn_check_attendance': '📊 Check Attendance',
+        'btn_my_details': '👤 My Details',
+        'btn_my_statistics': '📈 My Statistics',
+        'btn_edit_attendance': '✏️ Edit Attendance',
+        'btn_student_details': '👥 Student Details',
+        'btn_teacher_details': '👨‍🏫 Teacher Details',
+        'btn_class_statistics': '📊 Class Statistics',
+        'btn_search_student': '🔍 Search Student',
+        'btn_bulk_actions': '⚡ Bulk Actions',
+        'btn_export_data': '📤 Export Data',
+        'btn_add_student': '➕ Add Student',
+        'btn_remove_student': '➖ Remove Student',
+        'btn_edit_student_details': '✏️ Edit Student Details',
+        'btn_broadcast_message': '📢 Broadcast Message',
+        'btn_create_backup': '💾 Create Backup',
+        'btn_export_logs': '📄 Export Logs',
+        'btn_mimic_mode': '🎭 Mimic Mode',
+        'btn_analytics': '📊 Analytics',
+        'btn_manage_backups': '🗂️ Manage Backups',
+        'btn_system_management': '⚙️ System Management',
         
         # Teacher/Leader Menu
         'edit_attendance': 'Edit Attendance',
+        'view_details': 'View Details',
         'student_details': 'Student Details',
         'teacher_details': 'Teacher Details',
         'class_statistics': 'Class Statistics',
@@ -78,6 +122,13 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'analytics': 'Analytics',
         'manage_backups': 'Manage Backups',
         'system_management': 'System Management',
+        'database_info': 'Database Info',
+        'user_management': 'User Management',
+        'restart_system': 'Restart System',
+        'clean_logs': 'Clean Logs',
+        'performance_stats': 'Performance Stats',
+        'system_alerts': 'System Alerts',
+        'search_user': 'Search User',
         
         # Common Actions
         'undo_last': 'Undo Last',
@@ -91,6 +142,13 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'mark_all_absent': 'Mark All Absent',
         'attendance_saved': 'Attendance saved successfully!',
         'attendance_for': 'Attendance for',
+        
+        # Attendance Button Emojis
+        'btn_present': '✅ Present',
+        'btn_absent': '❌ Absent',
+        'btn_mark_all_present': '✅ Mark All Present',
+        'btn_mark_all_absent': '❌ Mark All Absent',
+        'btn_edit_reason': '📝 Edit Reason',
         
         # Absence Reasons
         'sick': 'Sick',
@@ -106,6 +164,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'next_saturday': 'Next Saturday',
         'choose_date': 'Choose Date',
         'select_saturday': 'Select Saturday',
+        
+        # Date Selection Button Emojis
+        'btn_last_saturday': '⏮️ Last Saturday',
+        'btn_this_saturday': '📍 This Saturday',
+        'btn_next_saturday': '⏭️ Next Saturday',
+        'btn_choose_date': '📅 Choose Date',
         
         # Statistics
         'attendance_rate': 'Attendance Rate',
@@ -134,10 +198,23 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'no_attendance_records': 'No attendance records yet',
         'recent_records': 'Recent Records',
         'no_class_assigned': 'No class assigned yet',
-        'no_students': 'No students in your class yet',
+        'no_students': 'No students found.',
+        'no_students_in_class': 'No students in this class yet.',
         'students': 'Students',
         'no_records': 'No records yet',
         'users': 'Users',
+        'total_users': 'Total Users',
+        'confirm_bulk_action': 'Confirm Bulk Action',
+        'bulk_action_success': 'Bulk Action Successful!',
+        'attendance_records': 'Attendance Records',
+        'user_breakdown': 'User Breakdown',
+        'urgent_message': 'Urgent Message',
+        'all_users': 'All Users',
+        'restore_backup': 'Restore Backup',
+        'delete_old_backups': 'Delete Old Backups',
+        'backup_info': 'Backup Info',
+        'full_report': 'Full Report',
+        'csv_format': 'CSV Format',
         'classes': 'Classes',
         'feature_coming_soon': 'This feature is coming soon!',
         'please_wait': 'Please wait for the next phase',
@@ -226,6 +303,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
         # Phase 3 Day 3 - Confirmations
         'confirm_action': 'Confirm Action',
+        'confirm_remove_student': 'Confirm Student Removal',
         'confirm_mark_all_present': 'Are you sure you want to mark all {count} users as present?',
         'confirm_mark_all_absent': 'Are you sure you want to mark all {count} users as absent?',
 
@@ -272,14 +350,58 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'welcome': 'مرحباً!',
         'choose_language': 'اختر لغتك',
         'language_selected': 'تم تعيين اللغة إلى العربية',
+        'edit_language': 'تعديل اللغة',
+        'select_language': 'اختر اللغة',
+        'current_language': 'اللغة الحالية',
+        'language_updated_success': 'تم تحديث اللغة بنجاح!',
+        'new_language': 'اللغة الجديدة',
+        'restart_needed': 'قد تحتاج بعض المميزات إلى إعادة تشغيل لتأخذ مفعولها.',
+        
+        # Button Emojis
+        'btn_yes': '✅ نعم',
+        'btn_no': '❌ لا',
+        'btn_ok': '✅ حسناً',
+        'btn_cancel': '❌ إلغاء',
+        'btn_back': '⬅️ رجوع',
+        'btn_next': '➡️ التالي',
+        'btn_save': '💾 حفظ',
+        'btn_delete': '🗑️ حذف',
+        'btn_edit': '✏️ تعديل',
+        'btn_confirm': '✅ تأكيد',
+        'btn_close': '❌ إغلاق',
         
         # Student Menu
         'check_attendance': 'فحص الحضور',
         'my_details': 'بياناتي',
         'my_statistics': 'إحصائياتي',
+        'my_attendance': 'حضوري',
+        'class_members': 'أعضاء الفصل',
+        
+        # Menu Button Emojis
+        'btn_check_attendance': '📊 فحص الحضور',
+        'btn_my_details': '👤 بياناتي',
+        'btn_my_statistics': '📈 إحصائياتي',
+        'btn_edit_attendance': '✏️ تعديل الحضور',
+        'btn_student_details': '👥 بيانات المخدومين',
+        'btn_teacher_details': '👨‍🏫 بيانات الخدام',
+        'btn_class_statistics': '📊 إحصائيات الفصل',
+        'btn_search_student': '🔍 بحث عن مخدوم',
+        'btn_bulk_actions': '⚡ عمليات جماعية',
+        'btn_export_data': '📤 تصدير البيانات',
+        'btn_add_student': '➕ إضافة مخدوم',
+        'btn_remove_student': '➖ حذف مخدوم',
+        'btn_edit_student_details': '✏️ تعديل البيانات',
+        'btn_broadcast_message': '📢 إرسال إعلان',
+        'btn_create_backup': '💾 نسخ احتياطي',
+        'btn_export_logs': '📄 تصدير السجلات',
+        'btn_mimic_mode': '🎭 وضع التقليد',
+        'btn_analytics': '📊 التحليلات',
+        'btn_manage_backups': '🗂️ إدارة النسخ الاحتياطية',
+        'btn_system_management': '⚙️ إدارة النظام',
         
         # Teacher/Leader Menu
         'edit_attendance': 'تعديل الحضور',
+        'view_details': 'عرض التفاصيل',
         'student_details': 'بيانات المخدومين',
         'teacher_details': 'بيانات الخدام',
         'class_statistics': 'إحصائيات الفصل',
@@ -298,6 +420,13 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'analytics': 'التحليلات',
         'manage_backups': 'إدارة النسخ الاحتياطية',
         'system_management': 'إدارة النظام',
+        'database_info': 'معلومات قاعدة البيانات',
+        'user_management': 'إدارة المستخدمين',
+        'restart_system': 'إعادة تشغيل النظام',
+        'clean_logs': 'تنظيف السجلات',
+        'performance_stats': 'إحصائيات الأداء',
+        'system_alerts': 'تنبيهات النظام',
+        'search_user': 'البحث عن مستخدم',
         
         # Common Actions
         'undo_last': 'تراجع',
@@ -311,6 +440,13 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'mark_all_absent': 'تحديد الكل غائب',
         'attendance_saved': 'تم حفظ الحضور بنجاح!',
         'attendance_for': 'الحضور لـ',
+        
+        # Attendance Button Emojis
+        'btn_present': '✅ حاضر',
+        'btn_absent': '❌ غائب',
+        'btn_mark_all_present': '✅ تحديد الكل حاضر',
+        'btn_mark_all_absent': '❌ تحديد الكل غائب',
+        'btn_edit_reason': '📝 تعديل السبب',
         
         # Absence Reasons
         'sick': 'مريض',
@@ -326,6 +462,12 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'next_saturday': 'السبت القادم',
         'choose_date': 'اختر التاريخ',
         'select_saturday': 'اختر السبت',
+        
+        # Date Selection Button Emojis
+        'btn_last_saturday': '⏮️ السبت الماضي',
+        'btn_this_saturday': '📍 هذا السبت',
+        'btn_next_saturday': '⏭️ السبت القادم',
+        'btn_choose_date': '📅 اختر التاريخ',
         
         # Statistics
         'attendance_rate': 'نسبة الحضور',
@@ -354,10 +496,23 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'no_attendance_records': 'لا توجد سجلات حضور بعد',
         'recent_records': 'السجلات الأخيرة',
         'no_class_assigned': 'لم يتم تعيين فصل لك بعد',
-        'no_students': 'لا يوجد طلاب في فصلك بعد',
+        'no_students': 'لم يتم العثور على طلاب.',
+        'no_students_in_class': 'لا يوجد طلاب في هذا الفصل بعد.',
         'students': 'طلاب',
         'no_records': 'لا توجد سجلات بعد',
         'users': 'المستخدمين',
+        'total_users': 'إجمالي المستخدمين',
+        'confirm_bulk_action': 'تأكيد العملية الجماعية',
+        'bulk_action_success': 'تمت العملية الجماعية بنجاح!',
+        'attendance_records': 'سجلات الحضور',
+        'user_breakdown': 'توزيع المستخدمين',
+        'urgent_message': 'رسالة عاجلة',
+        'all_users': 'جميع المستخدمين',
+        'restore_backup': 'استعادة النسخة الاحتياطية',
+        'delete_old_backups': 'حذف النسخ القديمة',
+        'backup_info': 'معلومات النسخة الاحتياطية',
+        'full_report': 'تقرير كامل',
+        'csv_format': 'تنسيق CSV',
         'classes': 'الفصول',
         'feature_coming_soon': 'هذه الميزة قادمة قريباً!',
         'please_wait': 'يرجى الانتظار للمرحلة القادمة',
@@ -446,6 +601,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
 
         # Phase 3 Day 3 - Confirmations
         'confirm_action': 'تأكيد الإجراء',
+        'confirm_remove_student': 'تأكيد حذف المخدوم',
         'confirm_mark_all_present': 'هل أنت متأكد أنك تريد تحديد كل الـ {count} مستخدمين كحاضرين؟',
         'confirm_mark_all_absent': 'هل أنت متأكد أنك تريد تحديد كل الـ {count} مستخدمين كغائبين؟',
 

@@ -16,6 +16,7 @@ from database.operations.attendance import (
     count_attendance,
     delete_attendance,
     get_attendance,
+    get_all_attendance_records,
     get_attendance_between_dates,
     get_class_attendance,
     get_consecutive_absences,
@@ -55,6 +56,7 @@ __all__ = [
     # Attendance operations
     "mark_attendance",
     "get_attendance",
+    "get_all_attendance_records",
     "get_class_attendance",
     "bulk_mark_attendance",
     "get_user_attendance_history",

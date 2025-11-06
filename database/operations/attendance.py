@@ -476,6 +476,20 @@ def delete_attendance(
         return False, "unknown_error"
 
 
+def get_all_attendance_records() -> List[Attendance]:
+    """
+    Get all attendance records from the database.
+    
+    Returns:
+        List of all Attendance objects
+    """
+    try:
+        with get_db() as db:
+            return db.query(Attendance).all()
+    except Exception as e:
+        return []
+
+
 # For testing
 if __name__ == "__main__":
     print("=== Attendance Operations Test ===\n")

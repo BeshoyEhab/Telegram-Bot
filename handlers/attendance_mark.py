@@ -14,7 +14,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes, CallbackQueryHandler
 from telegram.error import BadRequest
 
-from config import ROLE_TEACHER
+from config import ROLE_STUDENT
 from middleware.auth import require_role, get_user_lang
 from utils import get_translation, format_date_with_day
 from database.operations import get_user_by_telegram_id, get_users_by_class, get_users_by_role, get_attendance, mark_attendance
@@ -24,14 +24,20 @@ logger = logging.getLogger(__name__)
 
 async def show_attendance_interface(update: Update, context: ContextTypes.DEFAULT_TYPE, date_str: str, group: str = "students"):
     """
-    Show attendance marking interface with toggle buttons.
-    Now includes absence reasons display.
+    Show attendance marking interface with role-based access control.
+    
+    Role-based permissions:
+    - Students: view own attendance only (read-only)
+    - Teachers: edit their class students
+    - Leaders: edit their class members (not including themselves)
+    - Managers: edit any member attendance
+    - Developers: edit any member attendance
 
     Args:
         update: Telegram update
         context: Bot context
         date_str: Date string (YYYY-MM-DD)
-        group: "students" or "teachers"
+        group: "students" or "teachers" (for tab navigation)
     """
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
@@ -45,74 +51,128 @@ async def show_attendance_interface(update: Update, context: ContextTypes.DEFAUL
         )
         return
 
-    # Access control and get users
-    if group == "students":
-        if not (user.role == 1 or user.role >= 2):
+    # Role-based access control
+    if user.role == ROLE_STUDENT:
+        # Students can only view their own attendance
+        if group == "students":
+            students = [user]  # Only show their own record
+            class_id = user.class_id
+        else:
             await update.callback_query.edit_message_text(
                 get_translation(lang, "access_denied")
             )
             return
+    elif user.role == 2:  # Teacher
+        # Teachers can edit their class students
         if not user.class_id:
             await update.callback_query.edit_message_text(
                 get_translation(lang, "no_class_assigned")
             )
-        students = get_users_by_class(user.class_id, role=1) # Only get students (role=1)
+            return
+        students = get_users_by_class(user.class_id, role=ROLE_STUDENT)
         class_id = user.class_id
-    else:  # teachers/staff
-        if user.role <= 2:
+    elif user.role == 3:  # Leader
+        # Leaders can edit their class members (excluding themselves)
+        if not user.class_id:
             await update.callback_query.edit_message_text(
-                get_translation(lang, "access_denied")
+                get_translation(lang, "no_class_assigned")
             )
             return
-        target_role = user.role - 1
-        students = get_users_by_role(target_role)
-        class_id = None
+        all_class_members = get_users_by_class(user.class_id)
+        # Exclude the leader themselves from the list
+        students = [member for member in all_class_members if member.id != user.id]
+        class_id = user.class_id
+    elif user.role in [4, 5]:  # Manager, Developer
+        # Can edit any member attendance
+        if group == "students":
+            # Show all students (can be filtered by role if needed)
+            students = get_users_by_role(ROLE_STUDENT)
+            class_id = None
+        else:
+            # Show all teachers/staff
+            target_role = user.role - 1
+            students = get_users_by_role(target_role)
+            class_id = None
+    else:
+        await update.callback_query.edit_message_text(
+            get_translation(lang, "access_denied")
+        )
+        return
 
     # Store current group and class_id
     context.user_data["current_group"] = group
     context.user_data["current_class_id"] = class_id
     
     if not students:
+        message = f"✏️ {get_translation(lang, 'edit_attendance')}\n"
+        message += f"📅 {format_date_with_day(date_str, lang)}\n"
+        if user.role in [2, 3]:  # Teacher or Leader
+            message += f"🏫 {get_translation(lang, 'class')}: {user.class_id}\n"
+        message += "=" * 30 + "\n\n"
+        message += get_translation(lang, "no_students_in_class")
+
+        keyboard = [
+            [InlineKeyboardButton(f"⬅️ {get_translation(lang, 'back')}", callback_data="attendance_start")]
+        ]
+        
         await update.callback_query.edit_message_text(
-            get_translation(lang, "no_students")
+            message,
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
 
-    # Initialize attendance changes if not exists
-    if "attendance_changes" not in context.user_data:
-        context.user_data["attendance_changes"] = {}
+    # Initialize attendance changes if not exists (only for users who can edit)
+    if user.role > ROLE_STUDENT:
+        if "attendance_changes" not in context.user_data:
+            context.user_data["attendance_changes"] = {}
 
-    # Load existing attendance if available
-    for student in students:
-        if student.id not in context.user_data["attendance_changes"]:
-            # Check if attendance already marked for this date
-            existing = get_attendance(student.id, class_id, date_str)
-            if existing:
-                context.user_data["attendance_changes"][student.id] = {
-                    'status': existing.status,
-                    'note': existing.note
-                }
-            else:
-                # Default to absent
-                context.user_data["attendance_changes"][student.id] = {
-                    'status': False,
-                    'note': None
-                }
+        # Load existing attendance if available
+        for student in students:
+            if student.id not in context.user_data["attendance_changes"]:
+                # Check if attendance already marked for this date
+                existing = get_attendance(student.id, class_id, date_str)
+                if existing:
+                    context.user_data["attendance_changes"][student.id] = {
+                        'status': existing.status,
+                        'note': existing.note
+                    }
+                else:
+                    # Default to absent
+                    context.user_data["attendance_changes"][student.id] = {
+                        'status': False,
+                        'note': None
+                    }
 
     # Build message
-    message = f"✏️ {get_translation(lang, 'edit_attendance')}\n"
-    message += f"📅 {format_date_with_day(date_str, lang)}\n"
-    if group == "students":
-        message += f"🏫 {get_translation(lang, 'class')}: {user.class_id}\n"
+    if user.role == ROLE_STUDENT:
+        message = f"👁️ {get_translation(lang, 'my_attendance')}\n"
     else:
+        message = f"✏️ {get_translation(lang, 'edit_attendance')}\n"
+    
+    message += f"📅 {format_date_with_day(date_str, lang)}\n"
+    
+    if user.role in [2, 3]:  # Teacher or Leader
+        message += f"🏫 {get_translation(lang, 'class')}: {user.class_id}\n"
+    elif user.role in [4, 5]:  # Manager or Developer
         target_role = user.role - 1
         role_plurals = ['students', 'teachers', 'leaders', 'managers', 'developers']
         message += f"👨‍🏫 {get_translation(lang, role_plurals[target_role - 1])}\n"
+    
     message += "=" * 30 + "\n\n"
     
     # Count statistics
-    present_count = sum(1 for s in students 
-                       if context.user_data["attendance_changes"].get(s.id, {}).get('status', False))
+    if user.role > ROLE_STUDENT:
+        # For editors, count from changes
+        present_count = sum(1 for s in students 
+                           if context.user_data["attendance_changes"].get(s.id, {}).get('status', False))
+    else:
+        # For students, count from actual attendance
+        present_count = 0
+        for student in students:
+            existing = get_attendance(student.id, class_id, date_str)
+            if existing and existing.status:
+                present_count += 1
+    
     absent_count = len(students) - present_count
     total = len(students)
     
@@ -120,37 +180,48 @@ async def show_attendance_interface(update: Update, context: ContextTypes.DEFAUL
     message += f" | {absent_count} " + get_translation(lang, 'absent') + "\n\n"
     
     # Instructions
-    message += "💡 " + get_translation(lang, 'att_instructions') + "\n"
-    message += "📝 " + get_translation(lang, 'click_absent_for_reason') + "\n\n"
+    if user.role > ROLE_STUDENT:
+        message += "💡 " + get_translation(lang, 'att_instructions') + "\n"
+        message += "📝 " + get_translation(lang, 'click_absent_for_reason') + "\n\n"
     
     # Build keyboard with tab buttons first
     keyboard = []
 
-    # Tab buttons
-    role_plurals = ['students', 'teachers', 'leaders', 'managers', 'developers']
-    
-    students_text = get_translation(lang, 'students')
-    teachers_text = get_translation(lang, 'teachers')
+    # Tab buttons (only show tabs for users who can edit)
+    if user.role > ROLE_STUDENT:
+        # Tab buttons
+        role_plurals = ['students', 'teachers', 'leaders', 'managers', 'developers']
+        
+        students_text = get_translation(lang, 'students')
+        teachers_text = get_translation(lang, 'teachers')
 
-    if group == "students":
-        students_text = f"✅ {students_text}"
-    else:
-        teachers_text = f"✅ {teachers_text}"
+        if group == "students":
+            students_text = f"✅ {students_text}"
+        else:
+            teachers_text = f"✅ {teachers_text}"
 
-    tab_buttons = [InlineKeyboardButton(students_text, callback_data=f"att_tab_students_{date_str}")]
-    if user.role > 2:  # Only leaders and above can access staff tab
-        target_role = user.role - 1
-        staff_text = get_translation(lang, role_plurals[target_role - 1])
-        if group == "teachers":
-            staff_text = f"✅ {staff_text}"
-        tab_buttons.append(InlineKeyboardButton(staff_text, callback_data=f"att_tab_teachers_{date_str}"))
+        tab_buttons = [InlineKeyboardButton(students_text, callback_data=f"att_tab_students_{date_str}")]
+        if user.role > 2:  # Only leaders and above can access staff tab
+            target_role = user.role - 1
+            staff_text = get_translation(lang, role_plurals[target_role - 1])
+            if group == "teachers":
+                staff_text = f"✅ {staff_text}"
+            tab_buttons.append(InlineKeyboardButton(staff_text, callback_data=f"att_tab_teachers_{date_str}"))
 
-    keyboard.append(tab_buttons)
+        keyboard.append(tab_buttons)
 
+    # Build student/teacher list
     for student in students:
-        student_data = context.user_data["attendance_changes"].get(student.id, {})
-        student_status = student_data.get('status', False)
-        student_note = student_data.get('note')
+        if user.role > ROLE_STUDENT:
+            # Edit mode
+            student_data = context.user_data["attendance_changes"].get(student.id, {})
+            student_status = student_data.get('status', False)
+            student_note = student_data.get('note')
+        else:
+            # View mode (students can only see their own record)
+            existing = get_attendance(student.id, class_id, date_str)
+            student_status = existing.status if existing else False
+            student_note = existing.note if existing else None
         
         if student_status:
             # Present - show checkmark
@@ -164,48 +235,62 @@ async def show_attendance_interface(update: Update, context: ContextTypes.DEFAUL
             else:
                 button_text = f"❌ {student.name}"
         
-        # If present, single toggle button
-        if student_status:
-            keyboard.append([InlineKeyboardButton(
-                button_text,
-                callback_data=f"att_toggle_{student.id}_{date_str}"
-            )])
-        else:
-            # If absent, two buttons in same row
-            keyboard.append([
-                InlineKeyboardButton(
+        if user.role > ROLE_STUDENT:
+            # Edit mode - show interactive buttons
+            if student_status:
+                # Present - single toggle button
+                keyboard.append([InlineKeyboardButton(
                     button_text,
                     callback_data=f"att_toggle_{student.id}_{date_str}"
-                ),
-                InlineKeyboardButton(
-                    f"📝 {get_translation(lang, 'edit_reason')}",
-                    callback_data=f"att_reason_{student.id}_{date_str}"
-                )
-            ])
-    
-    # Add bulk action buttons
-    keyboard.append([
-        InlineKeyboardButton(
-            f"✔ {get_translation(lang, 'mark_all_present')}",
-            callback_data=f"att_confirm_present_{group}_{date_str}"
-        ),
-        InlineKeyboardButton(
-            f"✗ {get_translation(lang, 'mark_all_absent')}",
-            callback_data=f"att_confirm_absent_{group}_{date_str}"
-        )
-    ])
+                )])
+            else:
+                # If absent, two buttons in same row
+                keyboard.append([
+                    InlineKeyboardButton(
+                        button_text,
+                        callback_data=f"att_toggle_{student.id}_{date_str}"
+                    ),
+                    InlineKeyboardButton(
+                        get_translation(lang, 'btn_edit_reason'),
+                        callback_data=f"att_reason_{student.id}_{date_str}"
+                    )
+                ])
+        else:
+            # View mode - show read-only buttons
+            keyboard.append([InlineKeyboardButton(
+                button_text,
+                callback_data="menu_main"  # Just go back to main menu
+            )])
+        # Add bulk action buttons (only for editors)
+    if user.role > ROLE_STUDENT:
+        keyboard.append([
+            InlineKeyboardButton(
+                get_translation(lang, 'btn_mark_all_present'),
+                callback_data=f"att_confirm_present_{group}_{date_str}"
+            ),
+            InlineKeyboardButton(
+                get_translation(lang, 'btn_mark_all_absent'),
+                callback_data=f"att_confirm_absent_{group}_{date_str}"
+            )
+        ])
 
-    # Add save and cancel buttons
-    keyboard.append([
-        InlineKeyboardButton(
-            f"💾 {get_translation(lang, 'save')}",
-            callback_data=f"att_save_{group}_{date_str}"
-        ),
-        InlineKeyboardButton(
-            f"❌ {get_translation(lang, 'cancel')}",
-            callback_data="attendance_start"
-        )
-    ])
+        # Add save and cancel buttons
+        keyboard.append([
+            InlineKeyboardButton(
+                get_translation(lang, 'btn_save'),
+                callback_data=f"att_save_{group}_{date_str}"
+            ),
+            InlineKeyboardButton(
+                get_translation(lang, 'btn_cancel'),
+                callback_data="attendance_start"
+            )
+        ])
+    else:
+        # For students, just show back button
+        keyboard.append([InlineKeyboardButton(
+            get_translation(lang, 'btn_back'),
+            callback_data="menu_main"
+        )])
     
     try:
         await update.callback_query.edit_message_text(
@@ -219,7 +304,7 @@ async def show_attendance_interface(update: Update, context: ContextTypes.DEFAUL
             raise
 
 
-@require_role(ROLE_TEACHER)
+@require_role(ROLE_STUDENT + 1)
 async def toggle_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Toggle individual student attendance status.

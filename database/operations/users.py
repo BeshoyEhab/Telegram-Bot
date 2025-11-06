@@ -265,18 +265,22 @@ def get_users_by_role(role: int) -> List[User]:
         return users
 
 
-def get_users_by_class(class_id: int) -> List[User]:
+def get_users_by_class(class_id: int, role: Optional[int] = None) -> List[User]:
     """
-    Get all users in a specific class.
+    Get all users in a specific class, with an optional role filter.
 
     Args:
         class_id: Class ID
+        role: Role ID to filter by (optional)
 
     Returns:
         List of users
     """
     with get_db() as db:
-        users = db.query(User).filter_by(class_id=class_id).all()
+        query = db.query(User).filter_by(class_id=class_id)
+        if role is not None:
+            query = query.filter_by(role=role)
+        users = query.all()
         # FIX: Expunge all users
         for user in users:
             db.expunge(user)

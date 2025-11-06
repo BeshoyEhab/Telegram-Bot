@@ -10,11 +10,13 @@ Student menu handlers.
 """
 
 import logging
+from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 
 from middleware.auth import require_auth, get_user_lang
 from database.operations import get_user_by_telegram_id, get_user_attendance_history
+from database.connection import get_db
 from utils import get_translation, format_date_with_day, calculate_age
 
 logger = logging.getLogger(__name__)
@@ -152,6 +154,12 @@ async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [
             InlineKeyboardButton(
+                "🌐 " + get_translation(lang, "edit_language"),
+                callback_data="student_edit_language"
+            )
+        ],
+        [
+            InlineKeyboardButton(
                 "⬅️ " + get_translation(lang, "back"), callback_data="menu_main"
             )
         ]
@@ -245,6 +253,133 @@ async def view_my_statistics(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
+@require_auth
+async def edit_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Edit user language preference.
+    Callback: student_edit_language
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+
+    # Get user from database
+    user = get_user_by_telegram_id(user_id)
+
+    if not user:
+        await query.edit_message_text(get_translation(lang, "user_not_found"))
+        return
+
+    # Build language selection message
+    message = f"🌐 {get_translation(lang, 'select_language')}\n"
+    message += "=" * 30 + "\n\n"
+
+    # Current language indicator
+    current_lang = "العربية" if user.language_preference == "ar" else "English"
+    message += f"📍 {get_translation(lang, 'current_language')}: {current_lang}\n\n"
+
+    # Build keyboard
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "🇸🇦 العربية",
+                callback_data="student_set_language_ar"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🇺🇸 English",
+                callback_data="student_set_language_en"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "⬅️ " + get_translation(lang, "back"),
+                callback_data="menu_main"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+@require_auth
+async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Set user language preference.
+    Callback: student_set_language_ar | student_set_language_en
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+
+    # Get user from database
+    user = get_user_by_telegram_id(user_id)
+
+    if not user:
+        await query.edit_message_text(get_translation(lang, "user_not_found"))
+        return
+
+    # Extract language from callback data
+    callback_data = query.data
+    if callback_data == "student_set_language_ar":
+        new_language = "ar"
+        lang_name = "العربية"
+    elif callback_data == "student_set_language_en":
+        new_language = "en"
+        lang_name = "English"
+    else:
+        await query.edit_message_text(get_translation(lang, "invalid_action"))
+        return
+
+    # Update user language
+    try:
+        with get_db() as db:
+            db.execute(
+                "UPDATE users SET language_preference = ?, updated_at = ? WHERE id = ?",
+                (new_language, datetime.utcnow(), user.id)
+            )
+        
+        # Update context language
+        context.user_data["language"] = new_language
+        
+        # Show confirmation
+        message = f"✅ {get_translation(lang, 'language_updated_success')}\n\n"
+        message += f"🌐 {get_translation(lang, 'new_language')}: {lang_name}\n\n"
+        message += f"ℹ️ {get_translation(lang, 'restart_needed')}"
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "👤 " + get_translation(lang, "my_details"),
+                    callback_data="student_my_details"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "⬅️ " + get_translation(lang, "back"),
+                    callback_data="menu_main"
+                )
+            ]
+        ]
+
+        await query.edit_message_text(
+            message,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        
+    except Exception as e:
+        logger.error(f"Error updating language for user {user.id}: {e}")
+        await query.edit_message_text(get_translation(lang, "update_failed"))
+
+
 def register_student_handlers(application):
     """
     Register student menu handlers.
@@ -260,6 +395,15 @@ def register_student_handlers(application):
     )
     application.add_handler(
         CallbackQueryHandler(view_my_statistics, pattern="^student_my_stats$")
+    )
+    application.add_handler(
+        CallbackQueryHandler(edit_language, pattern="^student_edit_language$")
+    )
+    application.add_handler(
+        CallbackQueryHandler(set_language, pattern="^student_set_language_ar$")
+    )
+    application.add_handler(
+        CallbackQueryHandler(set_language, pattern="^student_set_language_en$")
     )
 
     logger.info("Student menu handlers registered")

@@ -229,19 +229,19 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [
                 InlineKeyboardButton(
-                    "📅 " + get_translation(lang, "check_attendance"),
-                    callback_data="student_my_attendance",
+                    get_translation(lang, "btn_check_attendance"),
+                    callback_data="attendance_start",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "👤 " + get_translation(lang, "my_details"),
+                    get_translation(lang, "btn_my_details"),
                     callback_data="student_my_details",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "📊 " + get_translation(lang, "my_statistics"),
+                    get_translation(lang, "btn_my_statistics"),
                     callback_data="student_my_stats",
                 )
             ],
@@ -252,25 +252,25 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [
                 InlineKeyboardButton(
-                    "✏️ " + get_translation(lang, "edit_attendance"),
+                    get_translation(lang, "btn_edit_attendance"),
                     callback_data="attendance_start",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "👥 " + get_translation(lang, "student_details"),
+                    get_translation(lang, "btn_student_details"),
                     callback_data="teacher_student_details",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "📈 " + get_translation(lang, "class_statistics"),
+                    get_translation(lang, "btn_class_statistics"),
                     callback_data="teacher_class_stats",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "👤 " + get_translation(lang, "my_details"),
+                    get_translation(lang, "btn_my_details"),
                     callback_data="student_my_details",
                 )
             ],
@@ -281,29 +281,29 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [
                 InlineKeyboardButton(
-                    "✏️ " + get_translation(lang, "edit_attendance"),
+                    get_translation(lang, "btn_edit_attendance"),
                     callback_data="attendance_start",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "👥 " + get_translation(lang, "student_details"),
+                    get_translation(lang, "btn_student_details"),
                     callback_data="teacher_student_details",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "➕ " + get_translation(lang, "add_student"),
+                    get_translation(lang, "btn_add_student"),
                     callback_data="leader_add_student",
                 ),
                 InlineKeyboardButton(
-                    "➖ " + get_translation(lang, "remove_student"),
+                    get_translation(lang, "btn_remove_student"),
                     callback_data="leader_remove_student",
                 ),
             ],
             [
                 InlineKeyboardButton(
-                    "📈 " + get_translation(lang, "class_statistics"),
+                    get_translation(lang, "btn_class_statistics"),
                     callback_data="teacher_class_stats",
                 )
             ],
@@ -314,31 +314,31 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [
                 InlineKeyboardButton(
-                    "✏️ " + get_translation(lang, "edit_attendance"),
+                    get_translation(lang, "btn_edit_attendance"),
                     callback_data="attendance_start",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "👥 " + get_translation(lang, "student_details"),
+                    get_translation(lang, "btn_student_details"),
                     callback_data="teacher_student_details",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "📢 " + get_translation(lang, "broadcast_message"),
+                    get_translation(lang, "btn_broadcast_message"),
                     callback_data="manager_broadcast",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "💾 " + get_translation(lang, "create_backup"),
+                    get_translation(lang, "btn_create_backup"),
                     callback_data="manager_backup",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "📈 " + get_translation(lang, "class_statistics"),
+                    get_translation(lang, "btn_class_statistics"),
                     callback_data="teacher_class_stats",
                 )
             ],
@@ -349,25 +349,25 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [
                 InlineKeyboardButton(
-                    "📊 " + get_translation(lang, "analytics"),
+                    get_translation(lang, "btn_analytics"),
                     callback_data="developer_analytics",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "🎭 " + get_translation(lang, "mimic_mode"),
+                    get_translation(lang, "btn_mimic_mode"),
                     callback_data="developer_mimic",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "📢 " + get_translation(lang, "broadcast_message"),
+                    get_translation(lang, "btn_broadcast_message"),
                     callback_data="manager_broadcast",
                 )
             ],
             [
                 InlineKeyboardButton(
-                    "💾 " + get_translation(lang, "create_backup"),
+                    get_translation(lang, "btn_create_backup"),
                     callback_data="manager_backup",
                 )
             ],
