@@ -1,334 +1,164 @@
 # =============================================================================
 # FILE: database/models.py
-# DESCRIPTION: SQLAlchemy database models - defines 9 database tables
+# DESCRIPTION: Data models for Redis implementation
 # LOCATION: database/models.py
-# PURPOSE: Database schema for users, classes, attendance, stats, logs, etc.
-# TABLES: User, Class, UserClass, Attendance, AttendanceStatistics, Log,
-#         MimicSession, Notification, Backup, ActionHistory, Broadcast, UsageAnalytics
+# PURPOSE: Define data structures for users, classes, etc.
 # =============================================================================
 
-"""
-SQLAlchemy database models for the School Management Bot.
-"""
-
-from datetime import date, datetime
-
-from sqlalchemy import (
-    JSON,
-    Boolean,
-    Column,
-    Date,
-    DateTime,
-    Float,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-    Time,
-)
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
-
-Base = declarative_base()
-
-
-class User(Base):
-    """User model - represents students, teachers, leaders, managers, and developers."""
-
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True)
-    telegram_id = Column(Integer, unique=True, nullable=False, index=True)
-    name = Column(String(100), nullable=False)
-    role = Column(Integer, nullable=False, index=True)  # 1-5
-    class_id = Column(Integer, ForeignKey("classes.id"), nullable=True)
-    phone = Column(String(20), nullable=True)  # Stored as +201XXXXXXXXX
-    address = Column(String(200), nullable=True)
-    birthday = Column(Date, nullable=True)
-    profile_photo_file_id = Column(String(200), nullable=True)
-    language_preference = Column(String(2), default="ar")  # 'ar' or 'en'
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    last_active = Column(DateTime, default=datetime.utcnow)
-    gender = Column(String(10), default="male")  # 'male' or 'female'
-    shammas_rank = Column(String(20), default="no")  # 'no', 'epsaltos', etc.
-
-    # Relationships - explicitly specify foreign_keys to avoid ambiguity
-    enrolled_classes = relationship(
-        "UserClass", back_populates="user", cascade="all, delete-orphan"
-    )
-    attendance_records = relationship(
-        "Attendance",
-        foreign_keys="Attendance.user_id",
-        back_populates="user",
-        cascade="all, delete-orphan",
-    )
-    marked_attendances = relationship(
-        "Attendance", foreign_keys="Attendance.marked_by", backref="marker"
-    )
-    statistics = relationship(
-        "AttendanceStatistics", back_populates="user", cascade="all, delete-orphan"
-    )
-    logs = relationship("Log", back_populates="user", cascade="all, delete-orphan")
-    notifications = relationship(
-        "Notification", back_populates="user", cascade="all, delete-orphan"
-    )
-
-    __table_args__ = (
-        Index("idx_users_gender", "gender"),
-        Index("idx_users_shammas", "shammas_rank"),
-    )
-
-    def __repr__(self):
-        return f"<User(id={self.id}, name='{self.name}', role={self.role})>"
-
-
-class Class(Base):
-    """Class model - represents different classes/groups."""
-
-    __tablename__ = "classes"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), nullable=False)
-    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    leader_id = Column(Integer, ForeignKey("users.id"), nullable=True)
-    class_day = Column(Integer, default=5)  # Day of week (5=Saturday)
-    class_time = Column(Time, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships - using backref to avoid circular references
-    members = relationship(
-        "User", foreign_keys="User.class_id", backref="primary_class"
-    )
-    teacher = relationship("User", foreign_keys=[teacher_id], backref="teaching_class")
-    leader = relationship("User", foreign_keys=[leader_id], backref="leading_class")
-    enrolled_users = relationship(
-        "UserClass", back_populates="class_obj", cascade="all, delete-orphan"
-    )
-    attendance_records = relationship(
-        "Attendance", back_populates="class_obj", cascade="all, delete-orphan"
-    )
-    statistics = relationship(
-        "AttendanceStatistics", back_populates="class_obj", cascade="all, delete-orphan"
-    )
-
-    def __repr__(self):
-        return f"<Class(id={self.id}, name='{self.name}')>"
-
-
-class UserClass(Base):
-    """Many-to-many relationship between users and classes."""
-
-    __tablename__ = "user_classes"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
-    enrolled_at = Column(DateTime, default=datetime.utcnow)
-    is_active = Column(Boolean, default=True)
-
-    # Relationships
-    user = relationship("User", back_populates="enrolled_classes")
-    class_obj = relationship("Class", back_populates="enrolled_users")
-
-    def __repr__(self):
-        return f"<UserClass(user_id={self.user_id}, class_id={self.class_id})>"
-
-
-class Attendance(Base):
-    """Attendance records - tracks student/teacher attendance on Saturdays."""
-
-    __tablename__ = "attendance"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    class_id = Column(Integer, ForeignKey("classes.id"), nullable=True)
-    date = Column(Date, nullable=False, index=True)  # Must be Saturday
-    status = Column(Boolean, nullable=False)  # True=Present, False=Absent
-    note = Column(String(100), nullable=True)  # Absence reason
-    marked_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships - explicitly specify foreign_keys
-    user = relationship(
-        "User", foreign_keys=[user_id], back_populates="attendance_records"
-    )
-    class_obj = relationship("Class", back_populates="attendance_records")
-    # marker relationship is created via backref in User model
-
-    # Composite index for faster queries
-    __table_args__ = (
-        Index("idx_attendance_user_class_date", "user_id", "class_id", "date"),
-    )
-
-    def __repr__(self):
-        return f"<Attendance(user_id={self.user_id}, date={self.date}, status={self.status})>"
-
-
-class AttendanceStatistics(Base):
-    """Cached attendance statistics per user per month."""
-
-    __tablename__ = "attendance_statistics"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
-    month = Column(Date, nullable=False)  # First day of month
-    total_saturdays = Column(Integer, default=0)
-    present_count = Column(Integer, default=0)
-    absent_count = Column(Integer, default=0)
-    attendance_percentage = Column(Float, default=0.0)
-    consecutive_absences = Column(Integer, default=0)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    user = relationship("User", back_populates="statistics")
-    class_obj = relationship("Class", back_populates="statistics")
-
-    # Composite index
-    __table_args__ = (Index("idx_stats_user_month", "user_id", "month"),)
-
-    def __repr__(self):
-        return f"<AttendanceStatistics(user_id={self.user_id}, month={self.month}, percentage={self.attendance_percentage})>"
-
-
-class Log(Base):
-    """Activity logs for audit trail."""
-
-    __tablename__ = "logs"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    action = Column(String(100), nullable=False, index=True)
-    details = Column(JSON, nullable=True)
-    ip_address = Column(String(45), nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
-    session_id = Column(String(100), nullable=True)
-
-    # Relationships
-    user = relationship("User", back_populates="logs")
-
-    def __repr__(self):
-        return f"<Log(user_id={self.user_id}, action='{self.action}', timestamp={self.timestamp})>"
-
-
-class MimicSession(Base):
-    """Tracks developer mimic mode sessions."""
-
-    __tablename__ = "mimic_sessions"
-
-    id = Column(Integer, primary_key=True)
-    developer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    mimicked_role = Column(Integer, nullable=False)
-    mimicked_class_id = Column(Integer, nullable=True)
-    started_at = Column(DateTime, default=datetime.utcnow)
-    ended_at = Column(DateTime, nullable=True)
-
-    # Relationships
-    developer = relationship("User", foreign_keys=[developer_id])
-
-    def __repr__(self):
-        return f"<MimicSession(developer_id={self.developer_id}, role={self.mimicked_role})>"
-
-
-class Notification(Base):
-    """User notifications and reminders."""
-
-    __tablename__ = "notifications"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    message = Column(Text, nullable=True)  # Deprecated, use message_ar/en
-    message_ar = Column(Text, nullable=True)
-    message_en = Column(Text, nullable=True)
-    type = Column(String(50), nullable=False)  # 'reminder', 'alert', 'announcement'
-    priority = Column(Integer, default=2)  # 1=Low, 2=Medium, 3=High
-    sent_at = Column(DateTime, nullable=True)
-    read_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    user = relationship("User", back_populates="notifications")
-
-    def __repr__(self):
-        return f"<Notification(user_id={self.user_id}, type='{self.type}', sent={self.sent_at is not None})>"
-
-
-class Backup(Base):
-    """Database backup records."""
-
-    __tablename__ = "backups"
-
-    id = Column(Integer, primary_key=True)
-    filename = Column(String(200), nullable=False)
-    file_size = Column(Integer, nullable=False)  # Size in bytes
-    backup_type = Column(String(20), nullable=False)  # 'auto' or 'manual'
-    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    creator = relationship("User", foreign_keys=[created_by])
-
-    def __repr__(self):
-        return f"<Backup(filename='{self.filename}', type='{self.backup_type}')>"
-
-
-class ActionHistory(Base):
-    """Stores action history for undo functionality."""
-
-    __tablename__ = "action_history"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    action_type = Column(String(50), nullable=False)
-    previous_state = Column(JSON, nullable=True)
-    new_state = Column(JSON, nullable=True)
-    can_undo = Column(Boolean, default=True)
-    expires_at = Column(DateTime, nullable=False)  # 5 minutes from creation
-    undone_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    user = relationship("User", foreign_keys=[user_id])
-
-    def __repr__(self):
-        return f"<ActionHistory(user_id={self.user_id}, action='{self.action_type}', can_undo={self.can_undo})>"
-
-
-class Broadcast(Base):
-    """Broadcast message records."""
-
-    __tablename__ = "broadcasts"
-
-    id = Column(Integer, primary_key=True)
-    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    message = Column(Text, nullable=False)
-    target_role = Column(Integer, nullable=True)  # If null, send to all
-    target_class_id = Column(Integer, nullable=True)  # If null, send to all classes
-    sent_count = Column(Integer, default=0)
-    failed_count = Column(Integer, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # Relationships
-    sender = relationship("User", foreign_keys=[sender_id])
-
-    def __repr__(self):
-        return f"<Broadcast(sender_id={self.sender_id}, sent={self.sent_count}, failed={self.failed_count})>"
-
-
-class UsageAnalytics(Base):
-    """Usage analytics for developer dashboard."""
-
-    __tablename__ = "usage_analytics"
-
-    id = Column(Integer, primary_key=True)
-    date = Column(Date, nullable=False, index=True)
-    command = Column(String(100), nullable=False)
-    usage_count = Column(Integer, default=0)
-    avg_response_time = Column(Float, default=0.0)  # In milliseconds
-    error_count = Column(Integer, default=0)
-
-    def __repr__(self):
-        return f"<UsageAnalytics(date={self.date}, command='{self.command}', count={self.usage_count})>"
+from datetime import datetime
+from typing import Optional, List, Dict, Any
+
+class User:
+    def __init__(self, 
+                 id: int, 
+                 telegram_id: int, 
+                 name: str, 
+                 role: int, 
+                 class_id: Optional[int] = None,
+                 phone: Optional[str] = None,
+                 address: Optional[str] = None,
+                 birthday: Optional[str] = None,
+                 language_preference: str = "ar",
+                 gender: str = "male",
+                 shammas_rank: str = "no",
+                 created_at: Optional[str] = None,
+                 updated_at: Optional[str] = None,
+                 last_active: Optional[str] = None):
+        self.id = id
+        self.telegram_id = telegram_id
+        self.name = name
+        self.role = role
+        self.class_id = class_id
+        self.phone = phone
+        self.address = address
+        self.birthday = birthday
+        self.language_preference = language_preference
+        self.gender = gender
+        self.shammas_rank = shammas_rank
+        self.created_at = created_at or datetime.utcnow().isoformat()
+        self.updated_at = updated_at or datetime.utcnow().isoformat()
+        self.last_active = last_active or datetime.utcnow().isoformat()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "telegram_id": self.telegram_id,
+            "name": self.name,
+            "role": self.role,
+            "class_id": self.class_id,
+            "phone": self.phone,
+            "address": self.address,
+            "birthday": self.birthday,
+            "language_preference": self.language_preference,
+            "gender": self.gender,
+            "shammas_rank": self.shammas_rank,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "last_active": self.last_active
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]):
+        return cls(
+            id=int(data.get("id")),
+            telegram_id=int(data.get("telegram_id")),
+            name=data.get("name"),
+            role=int(data.get("role")),
+            class_id=int(data.get("class_id")) if data.get("class_id") else None,
+            phone=data.get("phone"),
+            address=data.get("address"),
+            birthday=data.get("birthday"),
+            language_preference=data.get("language_preference", "ar"),
+            gender=data.get("gender", "male"),
+            shammas_rank=data.get("shammas_rank", "no"),
+            created_at=data.get("created_at"),
+            updated_at=data.get("updated_at"),
+            last_active=data.get("last_active")
+        )
+
+class Class:
+    def __init__(self, id: int, name: str, teacher_id: Optional[int] = None, leader_id: Optional[int] = None, class_day: int = 5):
+        self.id = id
+        self.name = name
+        self.teacher_id = teacher_id
+        self.leader_id = leader_id
+        self.class_day = class_day
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "teacher_id": self.teacher_id,
+            "leader_id": self.leader_id,
+            "class_day": self.class_day
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]):
+        return cls(
+            id=int(data.get("id")),
+            name=data.get("name"),
+            teacher_id=int(data.get("teacher_id")) if data.get("teacher_id") else None,
+            leader_id=int(data.get("leader_id")) if data.get("leader_id") else None,
+            class_day=int(data.get("class_day", 5))
+        )
+
+class Attendance:
+    def __init__(self, user_id: int, date: str, status: bool, class_id: Optional[int] = None, note: Optional[str] = None, marked_by: Optional[int] = None):
+        self.user_id = user_id
+        self.date = date
+        self.status = status
+        self.class_id = class_id
+        self.note = note
+        self.marked_by = marked_by
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "user_id": self.user_id,
+            "date": self.date,
+            "status": self.status,
+            "class_id": self.class_id,
+            "note": self.note,
+            "marked_by": self.marked_by
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]):
+        return cls(
+            user_id=int(data.get("user_id")),
+            date=data.get("date"),
+            status=bool(data.get("status")),
+            class_id=int(data.get("class_id")) if data.get("class_id") else None,
+            note=data.get("note"),
+            marked_by=int(data.get("marked_by")) if data.get("marked_by") else None
+        )
+
+# Placeholder classes for other models to support imports
+# In a full migration, these should also have to_dict/from_dict and operations.
+
+class UserClass:
+    def __init__(self, **kwargs): pass
+
+class AttendanceStatistics:
+    def __init__(self, **kwargs): pass
+
+class Log:
+    def __init__(self, **kwargs): pass
+
+class MimicSession:
+    def __init__(self, **kwargs): pass
+
+class Notification:
+    def __init__(self, **kwargs): pass
+
+class Backup:
+    def __init__(self, **kwargs): pass
+
+class ActionHistory:
+    def __init__(self, **kwargs): pass
+
+class Broadcast:
+    def __init__(self, **kwargs): pass
+
+class UsageAnalytics:
+    def __init__(self, **kwargs): pass

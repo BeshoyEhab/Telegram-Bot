@@ -1,23 +1,17 @@
 # =============================================================================
 # FILE: handlers/menu_student.py
-# DESCRIPTION: Student role menu handlers
+# DESCRIPTION: Student role menu handlers (Redis Implementation)
 # LOCATION: handlers/menu_student.py
-# PURPOSE: Handle student-specific features (view attendance, details, stats)
+# PURPOSE: Handle student-specific features
 # =============================================================================
 
-"""
-Student menu handlers.
-"""
-
 import logging
-from datetime import datetime
-from sqlalchemy import text
+from datetime import datetime, date, timedelta
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 
 from middleware.auth import require_auth, get_user_lang
 from database.operations import get_user_by_telegram_id, get_user_attendance_history, update_user
-from database.connection import get_db
 from utils import get_translation, format_date_with_day, calculate_age
 from utils.mimic import add_mimic_exit_button
 from handlers.common import show_main_menu
@@ -27,48 +21,27 @@ logger = logging.getLogger(__name__)
 
 @require_auth
 async def view_my_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Show student's attendance history.
-    Callback: student_my_attendance
-    """
+    """Show student's attendance history."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
-
-    # Get user from database
     user = get_user_by_telegram_id(user_id)
 
     if not user:
         await query.edit_message_text(get_translation(lang, "user_not_found"))
         return
 
-    # Get attendance history (all records)
     attendance_records = get_user_attendance_history(user.id)
 
     if not attendance_records:
         message = get_translation(lang, "check_attendance") + "\n\n"
-        message += (
-            "📋 " + get_translation(lang, "no_attendance_records")
-            if lang == "en"
-            else "لا توجد سجلات حضور"
-        )
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "⬅️ " + get_translation(lang, "back"), callback_data="menu_main"
-                )
-            ]
-        ]
-
-        await query.edit_message_text(
-            message, reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        message += "📋 " + (get_translation(lang, "no_attendance_records") if lang == "en" else "لا توجد سجلات حضور")
+        keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
-    # Build attendance message
     message = f"📊 {get_translation(lang, 'check_attendance')}\n"
     message += "=" * 30 + "\n\n"
 
@@ -78,36 +51,24 @@ async def view_my_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     message += f"📈 {get_translation(lang, 'attendance_rate')}: {percentage:.1f}%\n"
     message += f"✅ {get_translation(lang, 'present')}: {present_count}/{total}\n"
-    message += (
-        f"❌ {get_translation(lang, 'absent')}: {total - present_count}/{total}\n\n"
-    )
+    message += f"❌ {get_translation(lang, 'absent')}: {total - present_count}/{total}\n\n"
 
-    message += (
-        "📅 "
-        + (
-            get_translation(lang, "all_records")
-            if lang == "en"
-            else "سجل الحضور الكامل"
-        )
-        + ":\n"
-    )
+    message += "📅 " + (get_translation(lang, "all_records") if lang == "en" else "سجل الحضور الكامل") + ":\n"
     message += "-" * 30 + "\n"
 
     for record in attendance_records:
         status_icon = "✅" if record.status else "❌"
-        date_str = format_date_with_day(record.date.strftime("%Y-%m-%d"), lang)
+        # record.date is string in Redis logic, but might be date obj if converted.
+        # Check type
+        is_date_obj = hasattr(record.date, 'strftime')
+        d = record.date.strftime("%Y-%m-%d") if is_date_obj else record.date
+        date_str = format_date_with_day(d, lang)
+        
         message += f"{status_icon} {date_str}\n"
         if record.note:
             message += f"   📝 {record.note}\n"
 
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "⬅️ " + get_translation(lang, "back"), callback_data="menu_main"
-            )
-        ]
-    ]
-    
+    keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")]]
     keyboard = add_mimic_exit_button(keyboard, context)
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -115,24 +76,18 @@ async def view_my_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 @require_auth
 async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Show student's personal details.
-    Callback: student_my_details
-    """
+    """Show student's personal details."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
-
-    # Get user from database
     user = get_user_by_telegram_id(user_id)
 
     if not user:
         await query.edit_message_text(get_translation(lang, "user_not_found"))
         return
 
-    # Build details message
     message = f"👤 {get_translation(lang, 'my_details')}\n"
     message += "=" * 30 + "\n\n"
 
@@ -141,15 +96,12 @@ async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if user.phone:
         message += f"📱 {get_translation(lang, 'phone')}: {user.phone}\n"
-
     if user.address:
         message += f"📍 {get_translation(lang, 'address')}: {user.address}\n"
-
     if user.birthday:
         age = calculate_age(user.birthday)
         message += f"🎂 {get_translation(lang, 'birthday')}: {user.birthday.strftime('%Y-%m-%d')}\n"
         message += f"🎯 {get_translation(lang, 'age')}: {age} {get_translation(lang, 'years_old')}\n"
-
     if user.class_id:
         message += f"🏫 {get_translation(lang, 'class')}: {get_translation(lang, 'class')} {user.class_id}\n"
 
@@ -157,7 +109,6 @@ async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message += "العربية" if user.language_preference == "ar" else "English"
     message += "\n"
 
-    # Gender & Rank
     gender_text = get_translation(lang, user.gender) if user.gender else get_translation(lang, 'male')
     message += f"👤 {get_translation(lang, 'gender')}: {gender_text}\n"
 
@@ -166,17 +117,8 @@ async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
         message += f"⛪ {get_translation(lang, 'shammas_rank')}: {rank_text}\n"
 
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "🌐 " + get_translation(lang, "edit_language"),
-                callback_data="student_edit_language"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "⬅️ " + get_translation(lang, "back"), callback_data="menu_main"
-            )
-        ]
+        [InlineKeyboardButton("🌐 " + get_translation(lang, "edit_language"), callback_data="student_edit_language")],
+        [InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")]
     ]
     keyboard = add_mimic_exit_button(keyboard, context)
 
@@ -185,28 +127,20 @@ async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @require_auth
 async def view_my_statistics(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Show student's attendance statistics.
-    Callback: student_my_stats
-    """
+    """Show student's attendance statistics."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
-
-    # Get user from database
     user = get_user_by_telegram_id(user_id)
 
     if not user:
         await query.edit_message_text(get_translation(lang, "user_not_found"))
         return
 
-    # Get all attendance records for statistics
     from database.operations import count_attendance
-    from datetime import date, timedelta
-
-    # Calculate date range (last 3 months)
+    
     end_date = date.today()
     start_date = end_date - timedelta(days=90)
 
@@ -214,56 +148,32 @@ async def view_my_statistics(update: Update, context: ContextTypes.DEFAULT_TYPE)
     absent_count = count_attendance(user.id, False, start_date, end_date)
     total = present_count + absent_count
 
-    # Build statistics message
     message = f"📈 {get_translation(lang, 'my_statistics')}\n"
     message += "=" * 30 + "\n\n"
 
     if total == 0:
-        message += "📋 " + (
-            get_translation(lang, "no_records") if lang == "en" else "لا توجد سجلات بعد"
-        )
-
-        keyboard = [
-            [
-                InlineKeyboardButton(
-                    "⬅️ " + get_translation(lang, "back"), callback_data="menu_main"
-                )
-            ]
-        ]
-
-        await query.edit_message_text(
-            message, reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        message += "📋 " + (get_translation(lang, "no_records") if lang == "en" else "لا توجد سجلات بعد")
+        keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     percentage = (present_count / total * 100) if total > 0 else 0
 
     message += f"📊 {get_translation(lang, 'attendance_rate')}: {percentage:.1f}%\n\n"
-
     message += f"✅ {get_translation(lang, 'present')}: {present_count} {get_translation(lang, 'weeks')}\n"
     message += f"❌ {get_translation(lang, 'absent')}: {absent_count} {get_translation(lang, 'weeks')}\n"
     message += f"📋 {get_translation(lang, 'total')}: {total} {get_translation(lang, 'weeks')}\n\n"
 
-    # Rating
     if percentage >= 90:
-        rating = get_translation(lang, "excellent")
-        emoji = "🌟"
+        rating = get_translation(lang, "excellent"); emoji = "🌟"
     elif percentage >= 75:
-        rating = get_translation(lang, "good")
-        emoji = "👍"
+        rating = get_translation(lang, "good"); emoji = "👍"
     else:
-        rating = get_translation(lang, "needs_improvement")
-        emoji = "📌"
+        rating = get_translation(lang, "needs_improvement"); emoji = "📌"
 
     message += f"{emoji} {rating}\n"
 
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "⬅️ " + get_translation(lang, "back"), callback_data="menu_main"
-            )
-        ]
-    ]
+    keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")]]
     keyboard = add_mimic_exit_button(keyboard, context)
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -271,189 +181,111 @@ async def view_my_statistics(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 @require_auth
 async def edit_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Edit user language preference.
-    Callback: student_edit_language
-    """
+    """Edit user language preference."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
-
-    # Get user from database
     user = get_user_by_telegram_id(user_id)
 
     if not user:
         await query.edit_message_text(get_translation(lang, "user_not_found"))
         return
 
-    # Build language selection message
     message = f"🌐 {get_translation(lang, 'select_language')}\n"
     message += "=" * 30 + "\n\n"
-
-    # Current language indicator
     current_lang = "العربية" if user.language_preference == "ar" else "English"
     message += f"📍 {get_translation(lang, 'current_language')}: {current_lang}\n\n"
 
-    # Build keyboard
     keyboard = [
-        [
-            InlineKeyboardButton(
-                "🇸🇦 العربية",
-                callback_data="student_set_language_ar"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "🇺🇸 English",
-                callback_data="student_set_language_en"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                "⬅️ " + get_translation(lang, "back"),
-                callback_data="menu_main"
-            )
-        ]
+        [InlineKeyboardButton("🇸🇦 العربية", callback_data="student_set_language_ar")],
+        [InlineKeyboardButton("🇺🇸 English", callback_data="student_set_language_en")],
+        [InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")]
     ]
-
-    await query.edit_message_text(
-        message,
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_auth
 async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Set user language preference.
-    Callback: student_set_language_ar | student_set_language_en
-    """
+    """Set user language preference."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
-
-    # Get user from database
     user = get_user_by_telegram_id(user_id)
 
     if not user:
         await query.edit_message_text(get_translation(lang, "user_not_found"))
         return
 
-    # Check if mimicking - PREVENT UPDATE
     if context.user_data.get('is_mimicking'):
         await show_main_menu(update, context)
         return
 
-    # Extract language from callback data
     callback_data = query.data
     if callback_data == "student_set_language_ar":
-        new_language = "ar"
-        lang_name = "العربية"
+        new_language = "ar"; lang_name = "العربية"
     elif callback_data == "student_set_language_en":
-        new_language = "en"
-        lang_name = "English"
+        new_language = "en"; lang_name = "English"
     else:
         await query.edit_message_text(get_translation(lang, "invalid_action"))
         return
 
-    # Update user language
-    try:
-        with get_db() as db:
-            db.execute(
-                text("UPDATE users SET language_preference = :lang, updated_at = :updated WHERE id = :id"),
-                {"lang": new_language, "updated": datetime.utcnow(), "id": user.id}
-            )
-        
-        # Update context language
+    # Update through operation (no raw SQL)
+    success, _, error = update_user(telegram_id=user_id, language_preference=new_language)
+
+    if success:
         context.user_data["language"] = new_language
-        
-        # Show confirmation
         message = f"✅ {get_translation(lang, 'language_updated_success')}\n\n"
         message += f"🌐 {get_translation(lang, 'new_language')}: {lang_name}\n\n"
         message += f"ℹ️ {get_translation(lang, 'restart_needed')}"
-        
         keyboard = [
-            [
-                InlineKeyboardButton(
-                    "👤 " + get_translation(lang, "my_details"),
-                    callback_data="student_my_details"
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    "⬅️ " + get_translation(lang, "back"),
-                    callback_data="menu_main"
-                )
-            ]
+            [InlineKeyboardButton("👤 " + get_translation(lang, "my_details"), callback_data="student_my_details")],
+            [InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")]
         ]
-
-        await query.edit_message_text(
-            message,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        
-    except Exception as e:
-        logger.error(f"Error updating language for user {user.id}: {e}")
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        logger.error(f"Error updating language for user {user.id}: {error}")
         await query.edit_message_text(get_translation(lang, "update_failed"))
 
 
 @require_auth
 async def edit_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Show gender selection menu.
-    Callback: student_edit_gender
-    """
+    """Show gender selection menu."""
     query = update.callback_query
     await query.answer()
-
     lang = get_user_lang(context)
     
     message = f"👤 {get_translation(lang, 'select_gender')}\n"
     message += "=" * 30
 
     keyboard = [
-        [
-            InlineKeyboardButton(get_translation(lang, "male"), callback_data="student_set_gender_male"),
-            InlineKeyboardButton(get_translation(lang, "female"), callback_data="student_set_gender_female")
-        ],
-        [
-            InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")
-        ]
+        [InlineKeyboardButton(get_translation(lang, "male"), callback_data="student_set_gender_male"),
+         InlineKeyboardButton(get_translation(lang, "female"), callback_data="student_set_gender_female")],
+        [InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")]
     ]
-
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_auth
 async def set_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Set user gender.
-    Callback: student_set_gender_male | student_set_gender_female
-    """
+    """Set user gender."""
     query = update.callback_query
     await query.answer()
-
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
     
-    # Check if mimicking - PREVENT UPDATE
     if context.user_data.get('is_mimicking'):
         await show_main_menu(update, context)
         return
     
-    gender = query.data.split("_")[-1]  # male or female
-    
-    success, user, error = update_user(telegram_id=user_id, gender=gender)
+    gender = query.data.split("_")[-1]
+    success, _, error = update_user(telegram_id=user_id, gender=gender)
     
     if success:
         message = f"✅ {get_translation(lang, 'gender_updated')}"
-        # If female, warn about rank reset if applicable (handled in backend, but good to notify?)
-        # For now just show success and back button
-        
         keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")]]
         await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
     else:
@@ -462,18 +294,13 @@ async def set_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 @require_auth
 async def edit_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Show rank selection menu.
-    Callback: student_edit_rank
-    """
+    """Show rank selection menu."""
     query = update.callback_query
     await query.answer()
-
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
     user = get_user_by_telegram_id(user_id)
     
-    # Check if female
     if user.gender == 'female':
         await query.answer(get_translation(lang, "cannot_set_rank_for_female"), show_alert=True)
         return
@@ -483,8 +310,6 @@ async def edit_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     ranks = ['no', 'epsaltos', 'ognostos', 'epodiacon', 'deacon', 'archdeacon']
     keyboard = []
-    
-    # Create rows of 2 buttons
     row = []
     for rank in ranks:
         row.append(InlineKeyboardButton(get_translation(lang, f"rank_{rank}"), callback_data=f"student_set_rank_{rank}"))
@@ -495,30 +320,23 @@ async def edit_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append(row)
 
     keyboard.append([InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")])
-
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_auth
 async def set_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    Set user rank.
-    Callback: student_set_rank_{rank}
-    """
+    """Set user rank."""
     query = update.callback_query
     await query.answer()
-
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
     
-    # Check if mimicking - PREVENT UPDATE
     if context.user_data.get('is_mimicking'):
         await show_main_menu(update, context)
         return
     
     rank = query.data.replace("student_set_rank_", "")
-    
-    success, user, error = update_user(telegram_id=user_id, shammas_rank=rank)
+    success, _, error = update_user(telegram_id=user_id, shammas_rank=rank)
     
     if success:
         message = f"✅ {get_translation(lang, 'rank_updated')}"
@@ -530,41 +348,16 @@ async def set_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def register_student_handlers(application):
-    """
-    Register student menu handlers.
-
-    Args:
-        application: Telegram Application instance
-    """
-    application.add_handler(
-        CallbackQueryHandler(view_my_attendance, pattern="^student_my_attendance$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(view_my_details, pattern="^student_my_details$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(view_my_statistics, pattern="^student_my_stats$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(edit_language, pattern="^student_edit_language$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(set_language, pattern="^student_set_language_ar$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(set_language, pattern="^student_set_language_en$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(edit_gender, pattern="^student_edit_gender$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(set_gender, pattern="^student_set_gender_")
-    )
-    application.add_handler(
-        CallbackQueryHandler(edit_rank, pattern="^student_edit_rank$")
-    )
-    application.add_handler(
-        CallbackQueryHandler(set_rank, pattern="^student_set_rank_")
-    )
+    """Register student menu handlers."""
+    application.add_handler(CallbackQueryHandler(view_my_attendance, pattern="^student_my_attendance$"))
+    application.add_handler(CallbackQueryHandler(view_my_details, pattern="^student_my_details$"))
+    application.add_handler(CallbackQueryHandler(view_my_statistics, pattern="^student_my_stats$"))
+    application.add_handler(CallbackQueryHandler(edit_language, pattern="^student_edit_language$"))
+    application.add_handler(CallbackQueryHandler(set_language, pattern="^student_set_language_ar$"))
+    application.add_handler(CallbackQueryHandler(set_language, pattern="^student_set_language_en$"))
+    application.add_handler(CallbackQueryHandler(edit_gender, pattern="^student_edit_gender$"))
+    application.add_handler(CallbackQueryHandler(set_gender, pattern="^student_set_gender_"))
+    application.add_handler(CallbackQueryHandler(edit_rank, pattern="^student_edit_rank$"))
+    application.add_handler(CallbackQueryHandler(set_rank, pattern="^student_set_rank_"))
 
     logger.info("Student menu handlers registered")

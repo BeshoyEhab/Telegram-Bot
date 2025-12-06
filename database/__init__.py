@@ -10,21 +10,15 @@ Database package initialization.
 """
 
 from database.connection import (
-    ScopedSession,
-    SessionLocal,
     check_connection,
-    engine,
-    get_db,
-    get_session,
     get_table_counts,
-    init_db,
+    redis_client,
 )
 from database.models import (
     ActionHistory,
     Attendance,
     AttendanceStatistics,
     Backup,
-    Base,
     Broadcast,
     Class,
     Log,
@@ -37,16 +31,10 @@ from database.models import (
 
 __all__ = [
     # Connection
-    "engine",
-    "SessionLocal",
-    "ScopedSession",
-    "get_db",
-    "get_session",
-    "init_db",
+    "redis_client",
     "check_connection",
     "get_table_counts",
     # Models
-    "Base",
     "User",
     "Class",
     "UserClass",

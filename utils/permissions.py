@@ -1,13 +1,9 @@
 # =============================================================================
 # FILE: utils/permissions.py
-# DESCRIPTION: Role-based permission system
+# DESCRIPTION: Role-based permission system (Redis Implementation)
 # LOCATION: utils/permissions.py
 # PURPOSE: Check user permissions and restrict access by role
 # =============================================================================
-
-"""
-Permission system for role-based access control.
-"""
 
 from functools import wraps
 from typing import Callable, Optional
@@ -23,45 +19,26 @@ from config import (
     ROLE_STUDENT,
     ROLE_TEACHER,
 )
-from database import User, get_db
+from database import User
+# from database.operations.users import get_user_by_telegram_id # Removed to prevent circular import
 from utils.translations import get_translation
 
 
 def get_user_from_db(telegram_id: int, db=None) -> Optional[User]:
-    """
-    Get user from database by Telegram ID.
-
-    Args:
-        telegram_id: Telegram user ID
-        db: Optional SQLAlchemy session object
-
-    Returns:
-        User object or None
-    """
-    if db:
-        return db.query(User).filter_by(telegram_id=telegram_id).first()
-    else:
-        with get_db() as new_db:
-            return new_db.query(User).filter_by(telegram_id=telegram_id).first()
+    """Get user from database by Telegram ID."""
+    from database.operations.users import get_user_by_telegram_id
+    return get_user_by_telegram_id(telegram_id)
 
 
 def get_user_role(telegram_id: int, db=None) -> Optional[int]:
-    """
-    Get user role from config or database.
-
-    Args:
-        telegram_id: Telegram user ID
-        db: Optional SQLAlchemy session object
-
-    Returns:
-        Role number (1-5) or None if not authorized
-    """
+    """Get user role from config or database."""
     # First check AUTHORIZED_USERS from config
     if telegram_id in AUTHORIZED_USERS:
         return AUTHORIZED_USERS[telegram_id][0]  # Returns role
 
     # Then check database
-    user = get_user_from_db(telegram_id, db)
+    from database.operations.users import get_user_by_telegram_id
+    user = get_user_by_telegram_id(telegram_id)
     if user:
         return user.role
 
@@ -69,22 +46,14 @@ def get_user_role(telegram_id: int, db=None) -> Optional[int]:
 
 
 def get_user_class(telegram_id: int, db=None) -> Optional[int]:
-    """
-    Get user's primary class ID.
-
-    Args:
-        telegram_id: Telegram user ID
-        db: Optional SQLAlchemy session object
-
-    Returns:
-        Class ID or None
-    """
+    """Get user's primary class ID."""
     # Check config first
     if telegram_id in AUTHORIZED_USERS:
         return AUTHORIZED_USERS[telegram_id][1]  # Returns class_id
 
     # Check database
-    user = get_user_from_db(telegram_id, db)
+    from database.operations.users import get_user_by_telegram_id
+    user = get_user_by_telegram_id(telegram_id)
     if user:
         return user.class_id
 
@@ -92,29 +61,12 @@ def get_user_class(telegram_id: int, db=None) -> Optional[int]:
 
 
 def is_authorized(telegram_id: int) -> bool:
-    """
-    Check if user is authorized to use the bot.
-
-    Args:
-        telegram_id: Telegram user ID
-
-    Returns:
-        True if authorized, False otherwise
-    """
+    """Check if user is authorized to use the bot."""
     return get_user_role(telegram_id) is not None
 
 
 def has_role(telegram_id: int, required_role: int) -> bool:
-    """
-    Check if user has at least the required role level.
-
-    Args:
-        telegram_id: Telegram user ID
-        required_role: Minimum required role (1-5)
-
-    Returns:
-        True if user has required role or higher
-    """
+    """Check if user has at least the required role level."""
     user_role = get_user_role(telegram_id)
 
     if user_role is None:
@@ -124,16 +76,7 @@ def has_role(telegram_id: int, required_role: int) -> bool:
 
 
 def can_edit_attendance(telegram_id: int, class_id: Optional[int] = None) -> bool:
-    """
-    Check if user can edit attendance.
-
-    Args:
-        telegram_id: Telegram user ID
-        class_id: Class ID to check (optional)
-
-    Returns:
-        True if user can edit attendance
-    """
+    """Check if user can edit attendance."""
     user_role = get_user_role(telegram_id)
 
     if user_role is None:
@@ -155,16 +98,7 @@ def can_edit_attendance(telegram_id: int, class_id: Optional[int] = None) -> boo
 
 
 def can_manage_students(telegram_id: int, class_id: Optional[int] = None) -> bool:
-    """
-    Check if user can add/remove students.
-
-    Args:
-        telegram_id: Telegram user ID
-        class_id: Class ID to check (optional)
-
-    Returns:
-        True if user can manage students
-    """
+    """Check if user can add/remove students."""
     user_role = get_user_role(telegram_id)
 
     if user_role is None:
@@ -186,16 +120,7 @@ def can_manage_students(telegram_id: int, class_id: Optional[int] = None) -> boo
 
 
 def can_change_roles(telegram_id: int, target_role: int) -> bool:
-    """
-    Check if user can change someone's role to target_role.
-
-    Args:
-        telegram_id: Telegram user ID
-        target_role: Role to assign (1-5)
-
-    Returns:
-        True if user can assign this role
-    """
+    """Check if user can change someone's role."""
     user_role = get_user_role(telegram_id)
 
     if user_role is None:
@@ -213,87 +138,33 @@ def can_change_roles(telegram_id: int, target_role: int) -> bool:
 
 
 def can_broadcast(telegram_id: int) -> bool:
-    """
-    Check if user can broadcast messages.
-
-    Args:
-        telegram_id: Telegram user ID
-
-    Returns:
-        True if user can broadcast
-    """
     return has_role(telegram_id, ROLE_MANAGER)
 
 
 def can_create_backups(telegram_id: int) -> bool:
-    """
-    Check if user can create backups.
-
-    Args:
-        telegram_id: Telegram user ID
-
-    Returns:
-        True if user can create backups
-    """
     return has_role(telegram_id, ROLE_MANAGER)
 
 
 def can_export_logs(telegram_id: int) -> bool:
-    """
-    Check if user can export logs.
-
-    Args:
-        telegram_id: Telegram user ID
-
-    Returns:
-        True if user can export logs
-    """
     return has_role(telegram_id, ROLE_DEVELOPER)
 
 
 def can_view_analytics(telegram_id: int) -> bool:
-    """
-    Check if user can view analytics.
-
-    Args:
-        telegram_id: Telegram user ID
-
-    Returns:
-        True if user can view analytics
-    """
     return has_role(telegram_id, ROLE_DEVELOPER)
 
 
 def can_use_mimic_mode(telegram_id: int) -> bool:
-    """
-    Check if user can use mimic mode.
-
-    Args:
-        telegram_id: Telegram user ID
-
-    Returns:
-        True if user can use mimic mode
-    """
     return has_role(telegram_id, ROLE_DEVELOPER)
 
 
 def can_view_student_details(telegram_id: int, class_id: Optional[int] = None) -> bool:
-    """
-    Check if user can view student details.
-
-    Args:
-        telegram_id: Telegram user ID
-        class_id: Class ID to check (optional)
-
-    Returns:
-        True if user can view details
-    """
+    """Check if user can view student details."""
     user_role = get_user_role(telegram_id)
 
     if user_role is None:
         return False
 
-    # Students can only view their own details (handled elsewhere)
+    # Students (handled usually via their own menu)
     if user_role == ROLE_STUDENT:
         return False
 
@@ -308,19 +179,9 @@ def can_view_student_details(telegram_id: int, class_id: Optional[int] = None) -
     return True
 
 
-# Decorators for handlers
-
+# Decorators
 
 def require_authorization(func: Callable) -> Callable:
-    """
-    Decorator to require user authorization.
-
-    Usage:
-        @require_authorization
-        async def my_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            ...
-    """
-
     @wraps(func)
     async def wrapper(
         update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs
@@ -338,18 +199,6 @@ def require_authorization(func: Callable) -> Callable:
 
 
 def require_role(min_role: int):
-    """
-    Decorator to require minimum role level.
-
-    Args:
-        min_role: Minimum required role (1-5)
-
-    Usage:
-        @require_role(ROLE_TEACHER)
-        async def teacher_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            ...
-    """
-
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         async def wrapper(
@@ -371,47 +220,11 @@ def require_role(min_role: int):
 
 
 def get_user_language(telegram_id: int, db=None) -> str:
-    """
-    Get user's preferred language.
-
-    Args:
-        telegram_id: Telegram user ID
-        db: Optional SQLAlchemy session object
-
-    Returns:
-        Language code ('ar' or 'en')
-    """
-    if db:
-        user = db.query(User).filter(User.telegram_id == telegram_id).first()
-        if user and user.language_preference:
-            return user.language_preference
-    else:
-        with get_db() as new_db:
-            user = new_db.query(User).filter(User.telegram_id == telegram_id).first()
-            if user and user.language_preference:
-                return user.language_preference
+    """Get user's preferred language."""
+    # db arg is ignored
+    from database.operations.users import get_user_by_telegram_id
+    user = get_user_by_telegram_id(telegram_id)
+    if user and user.language_preference:
+        return user.language_preference
     
-    return "ar"  # Default to Arabic
-
-
-# For testing
-if __name__ == "__main__":
-    print("=== Permission System Test ===\n")
-
-    # Test with sample user IDs (these won't exist in real DB)
-    test_users = {
-        123456789: (ROLE_STUDENT, 1),
-        987654321: (ROLE_TEACHER, 1),
-        111222333: (ROLE_LEADER, 1),
-        444555666: (ROLE_MANAGER, None),
-        777888999: (ROLE_DEVELOPER, None),
-    }
-
-    for user_id, (role, class_id) in test_users.items():
-        print(f"\nUser {user_id} (Role: {role}):")
-        print(f"  Can edit attendance: {has_role(user_id, ROLE_TEACHER)}")
-        print(f"  Can manage students: {can_manage_students(user_id)}")
-        print(f"  Can broadcast: {can_broadcast(user_id)}")
-        print(f"  Can use mimic mode: {can_use_mimic_mode(user_id)}")
-
-    print("\n✅ Permission system loaded successfully!")
+    return "ar"

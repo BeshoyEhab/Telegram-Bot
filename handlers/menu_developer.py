@@ -167,16 +167,9 @@ async def system_management(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from datetime import datetime
     import os
     import psutil
-    import sqlite3
     
     # System information
     try:
-        # Database info
-        db_path = "/workspace/Telegram/school_bot.db"
-        db_size = 0
-        if os.path.exists(db_path):
-            db_size = os.path.getsize(db_path) / (1024 * 1024)  # MB
-        
         # System resources
         memory = psutil.virtual_memory()
         disk = psutil.disk_usage('/')
@@ -192,7 +185,7 @@ async def system_management(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         
         # Database info
-        message += f"💾 Database: {db_size:.1f} MB\n"
+        message += f"💾 Database: Redis (Upstash)\n"
         
         # System resources
         message += f"🧠 Memory: {memory.percent:.1f}% used ({memory.used//(1024**3)}GB / {memory.total//(1024**3)}GB)\n"
