@@ -11,6 +11,7 @@ Student menu handlers.
 
 import logging
 from datetime import datetime
+from sqlalchemy import text
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 
@@ -19,6 +20,7 @@ from database.operations import get_user_by_telegram_id, get_user_attendance_his
 from database.connection import get_db
 from utils import get_translation, format_date_with_day, calculate_age
 from utils.mimic import add_mimic_exit_button
+from handlers.common import show_main_menu
 
 logger = logging.getLogger(__name__)
 
@@ -341,6 +343,11 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(get_translation(lang, "user_not_found"))
         return
 
+    # Check if mimicking - PREVENT UPDATE
+    if context.user_data.get('is_mimicking'):
+        await show_main_menu(update, context)
+        return
+
     # Extract language from callback data
     callback_data = query.data
     if callback_data == "student_set_language_ar":
@@ -357,8 +364,8 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         with get_db() as db:
             db.execute(
-                "UPDATE users SET language_preference = ?, updated_at = ? WHERE id = ?",
-                (new_language, datetime.utcnow(), user.id)
+                text("UPDATE users SET language_preference = :lang, updated_at = :updated WHERE id = :id"),
+                {"lang": new_language, "updated": datetime.utcnow(), "id": user.id}
             )
         
         # Update context language
@@ -433,6 +440,11 @@ async def set_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
     
+    # Check if mimicking - PREVENT UPDATE
+    if context.user_data.get('is_mimicking'):
+        await show_main_menu(update, context)
+        return
+    
     gender = query.data.split("_")[-1]  # male or female
     
     success, user, error = update_user(telegram_id=user_id, gender=gender)
@@ -498,6 +510,11 @@ async def set_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lang = get_user_lang(context)
     user_id = context.user_data.get("telegram_id")
+    
+    # Check if mimicking - PREVENT UPDATE
+    if context.user_data.get('is_mimicking'):
+        await show_main_menu(update, context)
+        return
     
     rank = query.data.replace("student_set_rank_", "")
     
