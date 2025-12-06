@@ -415,7 +415,7 @@ async def mimic_students_list(update: Update, context: ContextTypes.DEFAULT_TYPE
         message += get_translation(lang, "no_classes_found")
     else:
         for i, class_obj in enumerate(classes, 1):
-            message += f"• {class_obj.name}\n"
+            message += f"• {get_translation(lang, class_obj.name)}\n"
             
         message += "\n" + get_translation(lang, 'select_class') + ":"
 
@@ -424,7 +424,7 @@ async def mimic_students_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     # Add class selection buttons
     for class_obj in classes:
         keyboard.append([InlineKeyboardButton(
-            f"🏫 {class_obj.name}",
+            f"🏫 {get_translation(lang, class_obj.name)}",
             # Use distinct callback for student-in-class view
             callback_data=f"mimic_class_student_{class_obj.id}"
         )])
@@ -475,7 +475,7 @@ async def mimic_teachers_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     
     for class_obj in classes:
         keyboard.append([InlineKeyboardButton(
-            f"🏫 {class_obj.name}",
+            f"🏫 {get_translation(lang, class_obj.name)}",
             callback_data=f"mimic_class_teacher_{class_obj.id}"
         )])
     
@@ -554,7 +554,7 @@ async def mimic_class_selected(update: Update, context: ContextTypes.DEFAULT_TYP
     offset = (page - 1) * limit
     
     class_obj = get_class_by_id(class_id)
-    class_name = class_obj.name if class_obj else "Unknown Class"
+    class_name = get_translation(lang, class_obj.name) if class_obj else "Unknown Class"
     
     role_id = ROLE_STUDENT if role_type == "student" else ROLE_TEACHER
     all_users = get_users_by_class(class_id, role_id)
