@@ -178,13 +178,14 @@ async def request_custom_reason(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 @require_role(ROLE_TEACHER)
-async def receive_custom_reason(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_reason_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
     Receive custom absence reason text input.
+    Returns True if handled, False otherwise.
     """
     # Check if we're waiting for custom reason
     if context.user_data.get("conversation_state") != WAITING_FOR_CUSTOM_REASON:
-        return
+        return False
     
     lang = get_user_lang(context)
     reason_text = update.message.text.strip()
@@ -197,7 +198,7 @@ async def receive_custom_reason(update: Update, context: ContextTypes.DEFAULT_TY
             f"❌ {get_translation(lang, error)}\n\n"
             f"{get_translation(lang, 'enter_custom_reason')}"
         )
-        return
+        return True
     
     # Get pending reason context
     pending = context.user_data.get("pending_reason", {})
@@ -208,7 +209,7 @@ async def receive_custom_reason(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text(
             get_translation(lang, "error_occurred")
         )
-        return
+        return True
     
     # Store reason in attendance changes
     if "attendance_changes" not in context.user_data:
@@ -251,6 +252,7 @@ async def receive_custom_reason(update: Update, context: ContextTypes.DEFAULT_TY
     
     # Return to attendance interface
     await show_attendance_interface(pseudo_update, context, date_str)
+    return True
 
 
 @require_role(ROLE_TEACHER)
@@ -347,10 +349,10 @@ def register_attendance_reason_handlers(application):
         pattern="^clear_reason_[0-9]+_[0-9]{4}-[0-9]{2}-[0-9]{2}$"
     ))
     
-    # Receive custom reason text
-    application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        receive_custom_reason
-    ))
+    # Receive custom reason text - REMOVED, moving to global dispatcher
+    # application.add_handler(MessageHandler(
+    #     filters.TEXT & ~filters.COMMAND,
+    #     receive_custom_reason
+    # ))
     
     logger.info("Attendance reason handlers registered")

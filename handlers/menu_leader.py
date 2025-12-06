@@ -326,12 +326,11 @@ def register_leader_handlers(application):
     application.add_handler(
         CallbackQueryHandler(leader_remove_execute, pattern="^leader_remove_execute_[0-9]+$")
     )
-    
-    # Message handler for manual add (capturing user input)
-    from telegram.ext import MessageHandler, filters
     application.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND & filters.Regex(r"^\d+:[^:]+:[12]$"), leader_manual_add_step2)
+        CallbackQueryHandler(leader_add_role_callback, pattern="^leader_add_role_")
     )
+    
+    # NOTE: Text handlers moved to common.py global_message_handler that calls handle_leader_text_input
 
     application.add_handler(
         CallbackQueryHandler(leader_bulk_confirm, pattern="^leader_bulk_confirm_")
@@ -351,12 +350,6 @@ def register_leader_handlers(application):
         CallbackQueryHandler(leader_set_rank, pattern="^leader_set_rank_")
     )
     
-    # Message handler for broadcasts
-    from telegram.ext import MessageHandler, filters
-    application.add_handler(
-        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_leader_message_input, block=False)
-    )
-
     logger.info("Leader menu handlers registered")
 
 
@@ -812,7 +805,7 @@ async def confirm_remove_student(update: Update, context: ContextTypes.DEFAULT_T
 @require_role(ROLE_LEADER)
 async def leader_manual_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handle manual addition of members - Step 1: Instructions.
+    Handle manual addition of members - Step 1: Ask for ID.
     Callback: leader_manual_add
     """
     query = update.callback_query
@@ -820,87 +813,99 @@ async def leader_manual_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lang = get_user_lang(context)
     
-    message = f"👥 **{get_translation(lang, 'manual_add_member')}**\n\n"
-    message += get_translation(lang, 'add_member_instructions') + "\n\n"
-    message += f"`{get_translation(lang, 'format_telegram_id_name_role')}`\n\n"
-    message += f"**{get_translation(lang, 'examples')}:**\n"
-    message += f"• {get_translation(lang, 'example_student')}: `123456789:Ahmed Ali:1`\n"
-    message += f"• {get_translation(lang, 'example_teacher')}: `987654321:Mohamed:2`\n\n"
-    message += f"**{get_translation(lang, 'roles')}:**\n"
-    message += get_translation(lang, 'role_1_student') + "\n"
-    message += get_translation(lang, 'role_2_teacher') + "\n\n"
-    message += "⚠️ " + get_translation(lang, 'make_sure_telegram_id_correct') + "."
+    # Set state
+    context.user_data['add_member_step'] = 'id'
+    context.user_data['add_member_data'] = {}
     
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                "⬅️ " + get_translation(lang, "back"),
-                callback_data="menu_main"
-            )
-        ]
-    ]
+    # Message
+    message = f"👤 **{get_translation(lang, 'manual_add_member')}**\n\n"
+    message += get_translation(lang, 'enter_telegram_id')
+    
+    keyboard = [[InlineKeyboardButton(
+        "⬅️ " + get_translation(lang, "back"),
+        callback_data="menu_main"
+    )]]
     
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
 
 
-@require_role(ROLE_LEADER)
-async def leader_manual_add_step2(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_add_member_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handle manual addition of members - Step 2: Process Input.
+    Handle input for add member flow.
     """
     lang = get_user_lang(context)
-    user_id = context.user_data.get("telegram_id")
+    step = context.user_data.get('add_member_step')
     text = update.message.text.strip()
     
-    # Get leader info
+    if step == 'id':
+        if not text.isdigit():
+            await update.message.reply_text(get_translation(lang, 'invalid_id_format'))
+            return
+            
+        context.user_data['add_member_data']['id'] = int(text)
+        context.user_data['add_member_step'] = 'name'
+        
+        await update.message.reply_text(get_translation(lang, 'enter_name'))
+        
+    elif step == 'name':
+        context.user_data['add_member_data']['name'] = text
+        context.user_data['add_member_step'] = 'role'
+        
+        # Show role buttons
+        message = get_translation(lang, 'select_role')
+        keyboard = [
+            [
+                InlineKeyboardButton(get_translation(lang, 'student'), callback_data="leader_add_role_1"),
+                InlineKeyboardButton(get_translation(lang, 'teacher'), callback_data="leader_add_role_2")
+            ],
+            [
+                InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="menu_main")
+            ]
+        ]
+        
+        await update.message.reply_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+@require_role(ROLE_LEADER)
+async def leader_add_role_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle role selection and execute add."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    role = int(query.data.split("_")[-1])
+    data = context.user_data.get('add_member_data', {})
+    
+    user_id = context.user_data.get("telegram_id")
     from database.operations import get_user_by_telegram_id, create_user
     leader = get_user_by_telegram_id(user_id)
     
     if not leader or not leader.class_id:
-        await update.message.reply_text(get_translation(lang, "access_denied"))
+        await query.edit_message_text(get_translation(lang, "access_denied"))
         return
 
-    try:
-        # Parse input
-        parts = text.split(":")
-        if len(parts) != 3:
-            raise ValueError("Invalid format")
-            
-        new_id = int(parts[0])
-        new_name = parts[1].strip()
-        new_role = int(parts[2])
-        
-        if new_role not in [1, 2]:
-            await update.message.reply_text("❌ " + get_translation(lang, 'invalid_role_use_1_or_2'))
-            return
-            
-        # Create user
-        success, user, error = create_user(
-            telegram_id=new_id,
-            name=new_name,
-            role=new_role,
-            class_id=leader.class_id
-        )
-        
-        if success:
-            role_name = get_translation(lang, 'student') if new_role == 1 else get_translation(lang, 'teacher')
-            await update.message.reply_text(
-                f"✅ **{get_translation(lang, 'user_added_successfully')}**\n\n"
-                f"{get_translation(lang, 'name')}: {user.name}\n"
-                f"ID: {user.telegram_id}\n"
-                f"{get_translation(lang, 'role')}: {role_name}\n"
-                f"{get_translation(lang, 'class')}: {leader.class_id}"
-            )
-        else:
-            await update.message.reply_text(get_translation(lang, 'failed_to_add_user', error=error))
-            
-    except ValueError:
-        await update.message.reply_text(
-            f"❌ {get_translation(lang, 'invalid_format_use_id_name_role')}\n{get_translation(lang, 'example_format')}",
+    success, user, error = create_user(
+        telegram_id=data.get('id'),
+        name=data.get('name'),
+        role=role,
+        class_id=leader.class_id
+    )
+    
+    # Clear state
+    context.user_data.pop('add_member_step', None)
+    context.user_data.pop('add_member_data', None)
+    
+    if success:
+        role_name = get_translation(lang, 'student') if role == 1 else get_translation(lang, 'teacher')
+        await query.edit_message_text(
+            f"✅ **{get_translation(lang, 'user_added_successfully')}**\n\n"
+            f"{get_translation(lang, 'name')}: {user.name}\n"
+            f"ID: {user.telegram_id}\n"
+            f"{get_translation(lang, 'role')}: {role_name}\n"
+            f"{get_translation(lang, 'class')}: {leader.class_id}",
             parse_mode="Markdown"
         )
-    except Exception as e:
-        await update.message.reply_text(f"❌ {get_translation(lang, 'error')}: {str(e)}")
+    else:
+        await query.edit_message_text(get_translation(lang, 'failed_to_add_user', error=error))
 
 
 @require_role(ROLE_LEADER)
@@ -1110,7 +1115,26 @@ async def leader_set_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
-async def handle_leader_message_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_leader_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    """
+    Central handler for leader text inputs.
+    Returns True if handled, False otherwise.
+    """
+    user_data = context.user_data
+    
+    # 1. Broadcast Input
+    if user_data.get('leader_broadcast_active'):
+        await handle_leader_broadcast(update, context)
+        return True
+        
+    # 2. Add Member Input
+    if user_data.get('add_member_step'):
+        await handle_add_member_input(update, context)
+        return True
+        
+    return False
+
+async def handle_leader_broadcast(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle text messages for leader broadcast."""
     user_data = context.user_data
     
@@ -1129,7 +1153,8 @@ async def handle_leader_message_input(update: Update, context: ContextTypes.DEFA
         user_data['leader_broadcast_active'] = False
         return
 
-    # Get students
+    # Get students (Assume class wide for now based on previous code)
+    # The previous code hardcoded target='class_all' which means all students usually
     all_members = get_users_by_class(leader.class_id)
     students = [m for m in all_members if m.role == ROLE_STUDENT]
     

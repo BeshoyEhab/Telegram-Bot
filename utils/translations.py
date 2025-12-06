@@ -418,6 +418,14 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'export_attendance': 'Export Attendance',
         'export_class_stats': 'Export Class Statistics',
         'export_full_report': 'Export Full Report',
+        
+        # New Flow Translations
+        'enter_telegram_id': 'Please enter the Telegram ID:',
+        'enter_name': 'Please enter the Name:',
+        'select_role': 'Select Role:',
+        'confirm_add_member': 'Confirm adding member?',
+        'input_ignored': 'Please use the buttons or commands.',
+        'invalid_id_format': 'Invalid ID format. Please send numbers only.',
     },
     
     'ar': {
@@ -798,6 +806,14 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         
         # Phase 3 - Manager Menu: Broadcast
         'broadcast_to_all_users': 'الإرسال لجميع المستخدمين',
+
+        # New Flow Translations
+        'enter_telegram_id': 'من فضلك أدخل معرف تليجرام:',
+        'enter_name': 'من فضلك أدخل الاسم:',
+        'select_role': 'اختر الدور:',
+        'confirm_add_member': 'تأكيد إضافة العضو؟',
+        'input_ignored': 'يرجى استخدام الأزرار أو الأوامر.',
+        'invalid_id_format': 'صيغة المعرف غير صحيحة. يرجى إرسال أرقام فقط.',
         'broadcast_to_students': 'الإرسال للطلاب',
         'broadcast_to_teachers': 'الإرسال للمعلمين',
         'broadcast_to_leaders': 'الإرسال للقادة',

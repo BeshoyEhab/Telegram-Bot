@@ -182,15 +182,16 @@ async def manual_date_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 @require_role(ROLE_STUDENT + 1)
-async def receive_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_date_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     """
-    Receive manually entered date.
+    Handle manually entered date.
+    Returns True if handled, False otherwise.
     """
     lang = get_user_lang(context)
     
     # Check if we're waiting for a date
     if context.user_data.get("conversation_state") != WAITING_FOR_DATE:
-        return
+        return False
     
     date_input = update.message.text.strip()
     
@@ -204,7 +205,7 @@ async def receive_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE
             f"{get_translation(lang, 'birthday_format')}\n"
             f"{get_translation(lang, 'birthday_example')}"
         )
-        return
+        return True
     
     # Clear conversation state
     context.user_data.pop("conversation_state", None)
@@ -236,6 +237,7 @@ async def receive_manual_date(update: Update, context: ContextTypes.DEFAULT_TYPE
     })()
 
     await show_attendance_interface(pseudo_update, context, date_input)
+    return True
 
 
 def register_attendance_date_handlers(application):
@@ -263,10 +265,10 @@ def register_attendance_date_handlers(application):
         pattern="^att_date_manual$"
     ))
     
-    # Receive manual date input
-    application.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        receive_manual_date
-    ))
+    # Receive manual date input - REMOVED, moving to global dispatcher
+    # application.add_handler(MessageHandler(
+    #     filters.TEXT & ~filters.COMMAND,
+    #     receive_manual_date
+    # ))
     
     logger.info("Attendance date handlers registered")

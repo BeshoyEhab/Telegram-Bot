@@ -446,6 +446,51 @@ async def main_menu_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
 
 
+
+# Global Message Handler
+async def global_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Global handler to route text inputs to specific handlers based on state.
+    Restricts random text input to prevent 'freezing'.
+    Includes typing animation.
+    """
+    user = update.effective_user
+    chat = update.effective_chat
+    lang = get_user_lang(context)
+    
+    # 1. Send typing action (feedback)
+    await chat.send_action(action="typing")
+    
+    # 2. Check each handler in priority order
+    
+    # Leader handlers (Broadcast, Add Member)
+    from handlers.menu_leader import handle_leader_text_input
+    if await handle_leader_text_input(update, context):
+        return
+
+    # Attendance Date (Manual Entry)
+    from handlers.attendance_date import handle_date_input
+    if await handle_date_input(update, context):
+        return
+        
+    # Attendance Reason (Custom Reason)
+    from handlers.attendance_reasons import handle_reason_input
+    if await handle_reason_input(update, context):
+        return
+        
+    # 3. If no handler accepted the input, it's unhandled/unwanted.
+    # Provide feedback to user (don't just freeze/ignore silently if they might be confused)
+    # But for "freeze prevention", we want to stop processing.
+    
+    # Optional: Send a hint if they are just typing randomly
+    # strict mode: delete message or reply with help
+    
+    await update.message.reply_text(
+        f"⛔ {get_translation(lang, 'input_ignored')}\n\n"
+        f"ℹ️ {get_translation(lang, 'help_text')}"
+    )
+
+
 def register_common_handlers(application):
     """
     Register common handlers.
@@ -467,5 +512,13 @@ def register_common_handlers(application):
 
     # Main menu callbacks
     application.add_handler(CallbackQueryHandler(main_menu_callback, pattern="^menu_"))
+    
+    # Global Message Handler - MUST be registered LAST (or explicitly)
+    # Use a broad filter but exclude commands
+    from telegram.ext import MessageHandler, filters
+    application.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        global_message_handler
+    ))
 
     logger.info("Common handlers registered")
