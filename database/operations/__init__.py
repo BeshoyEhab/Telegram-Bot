@@ -68,3 +68,13 @@ __all__ = [
     "get_attendance_stats_by_class",
     "delete_class_attendance",
 ]
+
+from database.operations.classes import (
+    get_all_classes,
+    get_class_by_id,
+)
+
+__all__.extend([
+    "get_all_classes",
+    "get_class_by_id",
+])

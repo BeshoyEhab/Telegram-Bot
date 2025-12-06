@@ -18,6 +18,7 @@ from middleware.auth import require_auth, get_user_lang
 from database.operations import get_user_by_telegram_id, get_user_attendance_history, update_user
 from database.connection import get_db
 from utils import get_translation, format_date_with_day, calculate_age
+from utils.mimic import add_mimic_exit_button
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,8 @@ async def view_my_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
         ]
     ]
+    
+    keyboard = add_mimic_exit_button(keyboard, context)
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -173,6 +176,7 @@ async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         ]
     ]
+    keyboard = add_mimic_exit_button(keyboard, context)
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -258,6 +262,7 @@ async def view_my_statistics(update: Update, context: ContextTypes.DEFAULT_TYPE)
             )
         ]
     ]
+    keyboard = add_mimic_exit_button(keyboard, context)
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 

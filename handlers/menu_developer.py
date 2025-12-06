@@ -100,8 +100,7 @@ async def mimic_mode_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message += f"👨‍🎓 {get_translation(lang, 'students')} ({len(students)})\n"
     message += f"👨‍🏫 {get_translation(lang, 'teachers')} ({len(teachers)})\n"
     message += f"👑 {get_translation(lang, 'leaders')} ({len(leaders)})\n"
-    message += f"👨‍💼 {get_translation(lang, 'managers')} ({len(managers)})\n"
-    message += f"👨‍💻 {get_translation(lang, 'developers')} ({len(developers)})\n\n"
+    message += f"👨‍💼 {get_translation(lang, 'managers')} ({len(managers)})\n\n"
     
     message += (
         "Choose a role to view users:"
@@ -133,12 +132,6 @@ async def mimic_mode_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton(
                 f"👨‍💼 {get_translation(lang, 'managers')}",
                 callback_data="mimic_managers_list"
-            )
-        ],
-        [
-            InlineKeyboardButton(
-                f"👨‍💻 {get_translation(lang, 'developers')}",
-                callback_data="mimic_developers_list"
             )
         ],
         [
@@ -322,12 +315,28 @@ def register_developer_handlers(application):
         pattern="^mimic_managers_list$"
     ))
     application.add_handler(CallbackQueryHandler(
-        mimic_developers_list,
-        pattern="^mimic_developers_list$"
-    ))
-    application.add_handler(CallbackQueryHandler(
         mimic_search_user,
         pattern="^mimic_search_user$"
+    ))
+    
+    # New handlers for updated mimic flow
+    application.add_handler(CallbackQueryHandler(
+        mimic_class_selected,
+        pattern=r"^mimic_class_(student|teacher)_\d+(_page_\d+)?$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        mimic_search_criteria_selected,
+        pattern=r"^search_criteria_(name|id|phone|date)$"
+    ))
+    
+    # Mimic action handlers
+    application.add_handler(CallbackQueryHandler(
+        start_mimic_user,
+        pattern=r"^mimic_user_\d+$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        stop_mimic,
+        pattern="^stop_mimic$"
     ))
     
     # System management sub-handlers
@@ -388,37 +397,41 @@ async def mimic_students_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     message = f"👨‍🎓 {get_translation(lang, 'students')} ({len(students)})\n"
     message += "=" * 30 + "\n\n"
     
-    if not students:
-        message += get_translation(lang, "no_students")
+@require_role(ROLE_DEVELOPER)
+async def mimic_students_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show list of classes to select student from."""
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    from database.operations import get_all_classes
+    
+    classes = get_all_classes()
+    
+    message = f"👨‍🎓 {get_translation(lang, 'students')} - {get_translation(lang, 'select_class')}\n"
+    message += "=" * 30 + "\n\n"
+    
+    if not classes:
+        message += get_translation(lang, "no_classes_found")
     else:
-        for i, student in enumerate(students[:20], 1):  # Show first 20
-            message += f"{i}. {student.name}"
-            if student.phone:
-                message += f" 📱 {student.phone}"
-            message += f" • ID: {student.id}\n"
-        
-        if len(students) > 20:
-            message += f"... {len(students) - 20} more students\n"
-        
-        message += "\n"
-        message += (
-            "Select a student to start mimicking:"
-            if lang == "en"
-            else "اختر طالباً لبدء تقليده:"
-        )
+        for i, class_obj in enumerate(classes, 1):
+            message += f"• {class_obj.name}\n"
+            
+        message += "\n" + get_translation(lang, 'select_class') + ":"
 
     keyboard = []
     
-    # Add student selection buttons
-    for i, student in enumerate(students[:10], 1):  # Show first 10
+    # Add class selection buttons
+    for class_obj in classes:
         keyboard.append([InlineKeyboardButton(
-            f"🎭 {student.name[:20]}..." if len(student.name) > 20 else f"🎭 {student.name}",
-            callback_data=f"mimic_user_{student.id}"
+            f"🏫 {class_obj.name}",
+            # Use distinct callback for student-in-class view
+            callback_data=f"mimic_class_student_{class_obj.id}"
         )])
     
     keyboard.append([InlineKeyboardButton(
         get_translation(lang, "btn_back"),
-        callback_data="menu_main"
+        callback_data="developer_mimic"
     )])
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -438,30 +451,37 @@ async def mimic_teachers_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     message = f"👨‍🏫 {get_translation(lang, 'teachers')} ({len(teachers)})\n"
     message += "=" * 30 + "\n\n"
     
-    if not teachers:
-        message += (
-            "No teachers found."
-            if lang == "en"
-            else "لا يوجد معلمين."
-        )
+@require_role(ROLE_DEVELOPER)
+async def mimic_teachers_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show list of classes to select teacher from."""
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    from database.operations import get_all_classes
+    
+    classes = get_all_classes()
+    
+    message = f"👨‍🏫 {get_translation(lang, 'teachers')} - {get_translation(lang, 'select_class')}\n"
+    message += "=" * 30 + "\n\n"
+    
+    if not classes:
+        message += get_translation(lang, "no_classes_found")
     else:
-        for i, teacher in enumerate(teachers[:20], 1):
-            message += f"{i}. {teacher.name}"
-            if teacher.phone:
-                message += f" 📱 {teacher.phone}"
-            message += f" • ID: {teacher.id}\n"
+        for i, class_obj in enumerate(classes, 1):
+            message += f"• {class_obj.name}\n"
 
     keyboard = []
     
-    for i, teacher in enumerate(teachers[:10], 1):
+    for class_obj in classes:
         keyboard.append([InlineKeyboardButton(
-            f"🎭 {teacher.name[:20]}..." if len(teacher.name) > 20 else f"🎭 {teacher.name}",
-            callback_data=f"mimic_user_{teacher.id}"
+            f"🏫 {class_obj.name}",
+            callback_data=f"mimic_class_teacher_{class_obj.id}"
         )])
     
     keyboard.append([InlineKeyboardButton(
         get_translation(lang, "btn_back"),
-        callback_data="menu_main"
+        callback_data="developer_mimic"
     )])
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -511,6 +531,164 @@ async def mimic_leaders_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 @require_role(ROLE_DEVELOPER)
+async def mimic_class_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show users in selected class to mimic with pagination."""
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    from database.operations import get_users_by_class, get_class_by_id
+    
+    # Parse callback data: mimic_class_(student|teacher)_(class_id)(_page_N)
+    data = query.data
+    parts = data.split('_')
+    role_type = parts[2]  # student or teacher
+    class_id = int(parts[3])
+    
+    # Handle pagination
+    page = 1
+    if len(parts) > 5 and parts[4] == 'page':
+        page = int(parts[5])
+        
+    limit = 50
+    offset = (page - 1) * limit
+    
+    class_obj = get_class_by_id(class_id)
+    class_name = class_obj.name if class_obj else "Unknown Class"
+    
+    role_id = ROLE_STUDENT if role_type == "student" else ROLE_TEACHER
+    all_users = get_users_by_class(class_id, role_id)
+    
+    # Slice for current page
+    users = all_users[offset:offset+limit]
+    total_users = len(all_users)
+    total_pages = (total_users + limit - 1) // limit
+    
+    # Role label
+    role_label = get_translation(lang, 'students') if role_type == 'student' else get_translation(lang, 'teachers')
+    
+    message = f"🎭 {role_label} - {class_name} ({total_users})\n"
+    message += f"📄 {get_translation(lang, 'page')} {page}/{total_pages}\n"
+    message += "=" * 30 + "\n\n"
+    
+    if not users:
+        message += get_translation(lang, "no_records_found")
+    else:
+        for i, user in enumerate(users, offset + 1):
+            message += f"{i}. {user.name}"
+            if user.phone:
+                message += f" 📱 {user.phone}"
+            message += f" • ID: {user.id}\n"
+            
+        message += "\n"
+        message += (
+            "Select a user to mimic:"
+            if lang == "en"
+            else "اختر مستخدماً لتقليده:"
+        )
+
+    keyboard = []
+    
+    for user in users:
+        keyboard.append([InlineKeyboardButton(
+            f"🎭 {user.name[:20]}..." if len(user.name) > 20 else f"🎭 {user.name}",
+            callback_data=f"mimic_user_{user.id}"
+        )])
+    
+    # Pagination buttons
+    nav_row = []
+    if page > 1:
+        nav_row.append(InlineKeyboardButton(
+            "⬅️ " + get_translation(lang, "prev_page"),
+            callback_data=f"mimic_class_{role_type}_{class_id}_page_{page-1}"
+        ))
+    if page < total_pages:
+        nav_row.append(InlineKeyboardButton(
+            get_translation(lang, "next_page") + " ➡️",
+            callback_data=f"mimic_class_{role_type}_{class_id}_page_{page+1}"
+        ))
+    if nav_row:
+        keyboard.append(nav_row)
+    
+    # Back button goes back to class selection
+    back_callback = "mimic_students_list" if role_type == "student" else "mimic_teachers_list"
+    keyboard.append([InlineKeyboardButton(
+        get_translation(lang, "btn_back"),
+        callback_data=back_callback
+    )])
+
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_DEVELOPER)
+async def start_mimic_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Start mimicking selected user."""
+    query = update.callback_query
+    await query.answer()
+    
+    lang = get_user_lang(context)
+    data = query.data
+    target_user_id = int(data.split('_')[2])
+    
+    from database.operations import get_user_by_id
+    target_user = get_user_by_id(target_user_id)
+    
+    if not target_user:
+        await query.edit_message_text("❌ User not found.")
+        return
+
+    # Set mimic state
+    context.user_data['is_mimicking'] = True
+    context.user_data['mimic_original_id'] = update.effective_user.id
+    
+    # Override immediate user data to simulate the user
+    context.user_data['telegram_id'] = target_user.telegram_id
+    context.user_data['role'] = target_user.role
+    context.user_data['language'] = target_user.language_preference or 'ar'
+    
+    # Notify developer
+    await query.edit_message_text(
+        f"🎭 Now mimicking: {target_user.name}\n"
+        f"Role: {target_user.role}\n"
+        f"Returning to Main Menu..."
+    )
+    
+    # Redirect to main menu as the mimicked user
+    from handlers.menu_main import menu_main
+    # We need to hack the update to make it look like it came from the mimicked user?
+    # Actually, the handlers use context.user_data['telegram_id'], so we just updated that.
+    # Just call menu_main directly.
+    await menu_main(update, context)
+
+
+async def stop_mimic(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Stop mimicking and return to developer menu."""
+    query = update.callback_query
+    await query.answer()
+    
+    # Restore developer identity
+    # Note: We assumed the developer ID was stored. 
+    # If not, we can rely on update.effective_user.id which is ALWAYS the real user.
+    
+    original_id = update.effective_user.id
+    
+    # Reset context
+    context.user_data['is_mimicking'] = False
+    context.user_data['telegram_id'] = original_id
+    context.user_data.pop('mimic_original_id', None)
+    
+    # Reload developer role/lang
+    from database.operations import get_user_by_telegram_id
+    dev_user = get_user_by_telegram_id(original_id)
+    
+    if dev_user:
+        context.user_data['role'] = dev_user.role
+        context.user_data['language'] = dev_user.language_preference or 'ar'
+        
+    await mimic_mode_menu(update, context)
+
+
+@require_role(ROLE_DEVELOPER)
 async def mimic_managers_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Show list of managers to mimic."""
     query = update.callback_query
@@ -553,76 +731,73 @@ async def mimic_managers_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
-@require_role(ROLE_DEVELOPER)
-async def mimic_developers_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show list of developers to mimic."""
-    query = update.callback_query
-    await query.answer()
 
-    lang = get_user_lang(context)
-    from database.operations import get_users_by_role
-    
-    developers = get_users_by_role(ROLE_DEVELOPER)
-    
-    message = f"👨‍💻 {get_translation(lang, 'developers')} ({len(developers)})\n"
-    message += "=" * 30 + "\n\n"
-    
-    if not developers:
-        message += (
-            "No developers found."
-            if lang == "en"
-            else "لا يوجد مطورين."
-        )
-    else:
-        for i, developer in enumerate(developers[:20], 1):
-            message += f"{i}. {developer.name}"
-            if developer.phone:
-                message += f" 📱 {developer.phone}"
-            message += f" • ID: {developer.id}\n"
-
-    keyboard = []
-    
-    for i, developer in enumerate(developers[:10], 1):
-        keyboard.append([InlineKeyboardButton(
-            f"🎭 {developer.name[:20]}..." if len(developer.name) > 20 else f"🎭 {developer.name}",
-            callback_data=f"mimic_user_{developer.id}"
-        )])
-    
-    keyboard.append([InlineKeyboardButton(
-        get_translation(lang, "btn_back"),
-        callback_data="menu_main"
-    )])
-
-    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_role(ROLE_DEVELOPER)
 async def mimic_search_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Search for a user to mimic."""
+    """Search for a user to mimic - Step 1: Choose Criteria."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
     
-    # Store state
-    context.user_data['mimic_search_active'] = True
+    # Reset search state
+    context.user_data['mimic_search_active'] = False
+    context.user_data['mimic_search_type'] = None
     
     message = (
         "🔍 **Search User to Mimic**\n\n"
-        "Please type the Name, Phone, or ID of the user you want to find.\n"
-        "Click Back to cancel."
+        "Please select how you want to search:"
         if lang == "en"
         else "🔍 **البحث عن مستخدم للتقليد**\n\n"
-        "الرجاء كتابة الاسم أو الهاتف أو المعرف للمستخدم الذي تريد البحث عنه.\n"
-        "اضغط رجوع للإلغاء."
+        "الرجاء اختيار طريقة البحث:"
     )
 
-    keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "btn_back"),
-        callback_data="developer_mimic"
-    )]]
+    keyboard = [
+        [
+            InlineKeyboardButton(f"👤 {get_translation(lang, 'search_by_name')}", callback_data="search_criteria_name"),
+            InlineKeyboardButton(f"🆔 {get_translation(lang, 'search_by_id')}", callback_data="search_criteria_id")
+        ],
+        [
+            InlineKeyboardButton(f"📱 {get_translation(lang, 'search_by_phone')}", callback_data="search_criteria_phone"),
+            InlineKeyboardButton(f"📅 {get_translation(lang, 'search_by_date')}", callback_data="search_criteria_date")
+        ],
+        [
+            InlineKeyboardButton(
+                get_translation(lang, "btn_back"),
+                callback_data="developer_mimic"
+            )
+        ]
+    ]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_DEVELOPER)
+async def mimic_search_criteria_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle search criteria selection."""
+    query = update.callback_query
+    await query.answer()
+    
+    lang = get_user_lang(context)
+    data = query.data
+    criteria = data.split('_')[2]  # name, id, phone, date
+    
+    # Set state
+    context.user_data['mimic_search_active'] = True
+    context.user_data['mimic_search_type'] = criteria
+    
+    # Get prompt message based on criteria
+    prompt_key = f"enter_search_{criteria}"
+    prompt = get_translation(lang, prompt_key)
+    
+    keyboard = [[InlineKeyboardButton(
+        get_translation(lang, "btn_back"),
+        callback_data="mimic_search_user"
+    )]]
+    
+    await query.edit_message_text(prompt, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 # System management handlers
@@ -918,20 +1093,77 @@ async def handle_developer_message_input(update: Update, context: ContextTypes.D
         
 
 async def _handle_mimic_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Process mimic search query."""
+    """Process mimic search query based on selected criteria."""
     lang = get_user_lang(context)
     query_text = update.message.text
     user_data = context.user_data
     
-    from database.operations import search_users
+    search_type = user_data.get('mimic_search_type')
     
-    # Perform search
-    results = search_users(query_text)
+    from database.operations import search_users
+    from database.models import User
+    from database import get_db
+    from sqlalchemy import or_
+    from datetime import datetime
+    
+    results = []
+    
+    # Custom search logic based on type
+    try:
+        with get_db() as db:
+            query = db.query(User)
+            
+            if search_type == 'name':
+                query = query.filter(User.name.ilike(f"%{query_text}%"))
+            
+            elif search_type == 'id':
+                # Try to parse ID first
+                if not query_text.isdigit():
+                    await update.message.reply_text(get_translation(lang, 'invalid_id_format'))
+                    return
+                query = query.filter(User.telegram_id == int(query_text))
+                
+            elif search_type == 'phone':
+                # Remove spaces and dashes
+                clean_phone = query_text.replace(" ", "").replace("-", "")
+                query = query.filter(User.phone.ilike(f"%{clean_phone}%"))
+                
+            elif search_type == 'date':
+                # Try to parse date in YYYY-MM-DD
+                try:
+                    date_obj = datetime.strptime(query_text, "%Y-%m-%d").date()
+                    query = query.filter(User.birthday == date_obj)
+                except ValueError:
+                    await update.message.reply_text(get_translation(lang, 'invalid_date_format'))
+                    return
+            
+            else:
+                # Fallback to general search if no type (legacy)
+                search_filter = or_(
+                    User.name.ilike(f"%{query_text}%"),
+                    User.phone.ilike(f"%{query_text}%"),
+                    User.telegram_id.ilike(f"%{query_text}%"),
+                )
+                query = query.filter(search_filter)
+            
+            results = query.limit(20).all()
+            for user in results:
+                db.expunge(user)
+                
+    except Exception as e:
+        logger.error(f"Search error: {e}")
+        await update.message.reply_text(get_translation(lang, 'error_occurred'))
+        return
     
     if not results:
-        await update.message.reply_text(
-            f"❌ No users found matching '{query_text}'. Try again or click Back."
-        )
+        message = f"❌ {get_translation(lang, 'no_records_found')} ({query_text})"
+        
+        keyboard = [[InlineKeyboardButton(
+            get_translation(lang, "btn_back"),
+            callback_data="mimic_search_user"
+        )]]
+        
+        await update.message.reply_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
         return
         
     message = f"🔍 **Search Results for '{query_text}'**\n"
@@ -943,10 +1175,8 @@ async def _handle_mimic_search(update: Update, context: ContextTypes.DEFAULT_TYP
         display_text = f"{user.name} ({user.id})"
         try:
             role = user.role
-            if role == 5: display_text += " [DEV]"
-            elif role == 4: display_text += " [MGR]"
-            elif role == 3: display_text += " [LDR]"
-            elif role == 2: display_text += " [TCH]"
+            role_map = {1: "[STD]", 2: "[TCH]", 3: "[LDR]", 4: "[MGR]", 5: "[DEV]"}
+            display_text += f" {role_map.get(role, '')}"
         except:
             pass
         
@@ -955,7 +1185,8 @@ async def _handle_mimic_search(update: Update, context: ContextTypes.DEFAULT_TYP
             callback_data=f"mimic_user_{user.id}"
         )])
         
-    user_data['mimic_search_active'] = False 
+    context.user_data['mimic_search_active'] = False 
+    context.user_data['mimic_search_type'] = None
     
     keyboard.append([InlineKeyboardButton(
         get_translation(lang, "btn_back"),

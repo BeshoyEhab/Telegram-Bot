@@ -24,6 +24,7 @@ from database.operations import (
 from database import get_db
 from utils import get_translation, get_last_saturday, get_next_saturday, format_date_with_day
 from handlers.attendance_stats import show_reason_statistics
+from utils.mimic import add_mimic_exit_button
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,7 @@ async def view_student_details(update: Update, context: ContextTypes.DEFAULT_TYP
             )
         ]
     ]
+    keyboard = add_mimic_exit_button(keyboard, context)
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -267,6 +269,8 @@ async def view_class_statistics(update: Update, context: ContextTypes.DEFAULT_TY
         ],
     ]
 
+    keyboard = add_mimic_exit_button(keyboard, context)
+    
     await query.edit_message_text(
         message, 
         reply_markup=InlineKeyboardMarkup(keyboard)
