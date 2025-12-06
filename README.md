@@ -26,7 +26,7 @@ A comprehensive Telegram bot for managing school attendance, student records, an
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/BeshoyEhab/TelegramBot
+git clone https://github.com/BeshoyEhab/Telegram-Bot
 cd telegram_school_bot
 ```
 
