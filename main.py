@@ -79,14 +79,17 @@ def main():
     logger.info("Initializing database tables...")
     init_db()
 
+
+def create_application() -> Application:
+    """Create and configure the Application instance."""
     # Create custom request with longer timeouts
     logger.info("Creating Telegram application with custom timeouts...")
     request = HTTPXRequest(
         connection_pool_size=8,
-        connect_timeout=30.0,  # Increased from default 5.0
-        read_timeout=30.0,     # Increased from default 5.0
-        write_timeout=30.0,    # Increased from default 5.0
-        pool_timeout=30.0      # Increased from default 1.0
+        connect_timeout=30.0,
+        read_timeout=30.0,
+        write_timeout=30.0,
+        pool_timeout=30.0
     )
 
     # Create application with custom request
@@ -94,7 +97,7 @@ def main():
         Application.builder()
         .token(config.BOT_API)
         .request(request)
-        .post_init(post_init)  # Verify connection after init
+        .post_init(post_init)
         .build()
     )
 
@@ -114,9 +117,32 @@ def main():
     register_attendance_reason_handlers(application)
     register_attendance_confirm_handlers(application)
     register_attendance_stats_handlers(application)
-
+    
     # Add error handler
     application.add_error_handler(error_handler)
+    
+    return application
+
+
+def main():
+    """Main function to run the bot."""
+
+    logger.info("=" * 60)
+    logger.info("Starting Telegram School Management Bot - Phase 2")
+    logger.info("=" * 60)
+
+    # Check database connection
+    logger.info("Checking database connection...")
+    if not check_connection():
+        logger.error("Failed to connect to database. Exiting.")
+        return
+
+    # Initialize database
+    logger.info("Initializing database tables...")
+    init_db()
+
+    # Create application
+    application = create_application()
 
     # Start bot
     logger.info("Bot is starting...")
