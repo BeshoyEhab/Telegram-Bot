@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>School Management Bot</title>
+    <style>
+      :root {
+        --bg-color: #0f172a;
+        --text-color: #f8fafc;
+        --accent-color: #3b82f6;
+        --accent-hover: #2563eb;
+        --glass-bg: rgba(30, 41, 59, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.1);
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        overflow: hidden;
+        background-image: radial-gradient(
+            circle at 10% 20%,
+            rgba(59, 130, 246, 0.15) 0%,
+            transparent 20%
+          ),
+          radial-gradient(
+            circle at 90% 80%,
+            rgba(139, 92, 246, 0.15) 0%,
+            transparent 20%
+          );
+      }
+
+      .container {
+        text-align: center;
+        padding: 3rem;
+        border-radius: 24px;
+        background: var(--glass-bg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        max-width: 480px;
+        width: 90%;
+        animation: fadeIn 0.8s ease-out;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        background: linear-gradient(to right, #60a5fa, #c084fc);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+      }
+
+      p {
+        font-size: 1.1rem;
+        color: #cbd5e1;
+        margin-bottom: 2.5rem;
+        line-height: 1.6;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 2rem;
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: white;
+        background-color: var(--accent-color);
+        border: none;
+        border-radius: 12px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        background-color: var(--accent-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.5);
+      }
+
+      .btn svg {
+        margin-right: 12px;
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Float animation for background elements */
+      .orb {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        z-index: -1;
+        animation: float 10s infinite ease-in-out;
+      }
+      .orb-1 {
+        width: 300px;
+        height: 300px;
+        background: rgba(59, 130, 246, 0.2);
+        top: -50px;
+        left: -50px;
+        animation-delay: 0s;
+      }
+      .orb-2 {
+        width: 250px;
+        height: 250px;
+        background: rgba(139, 92, 246, 0.2);
+        bottom: -50px;
+        right: -50px;
+        animation-delay: -5s;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(30px, -30px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+
+    <div class="container">
+      <h1>School Bot</h1>
+      <p>
+        Your intelligent assistant for school management.<br />Track attendance,
+        manage classes, and more.
+      </p>
+
+      <a href="https://t.me/AlkhedmaBot" class="btn" id="botLink">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-2.02-1.35-2.92-1.99-.95-.67-.34-1.01.27-1.74l3.58-3.71c.15-.14.37-.36.1-.55-.38-.27-3.6 2.02-4.08 2.37-.52.36-1.01.5-1.5.47-1.16-.06-1.55-.17-2.34-.41-.71-.22-.64-.5.14-.81 3.52-1.61 7.21-3.32 9.5-4.27 1.13-.49 1.93-.24 2.16.27z"
+          />
+        </svg>
+        Open in Telegram
+      </a>
+
+        <div style="margin-top: 2rem;">
+            <button onclick="setupWebhook()" class="btn" style="background-color: transparent; border: 1px solid rgba(255,255,255,0.2); font-size: 0.9rem; padding: 0.5rem 1rem; opacity: 0.7;">
+                Initialize Connection
+            </button>
+            <p id="status" style="font-size: 0.8rem; margin-top: 10px; min-height: 20px;"></p>
+        </div>
+    </div>
+
+    <script>
+      // Optional: Auto-redirect if via deep link or certain conditions?
+      // For now, simple manual click is best for UX on landing pages.
+
+      // Dynamic Username Injection (if we want to support query params)
+      const urlParams = new URLSearchParams(window.location.search);
+      const botUsername = urlParams.get("bot");
+      if (botUsername) {
+        document.getElementById("botLink").href = `https://t.me/${botUsername}`;
+      }
+
+        async function setupWebhook() {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = "Initializing...";
+            statusEl.style.color = "#fbbf24"; // yellow
+
+            try {
+                const response = await fetch('/setup');
+                const data = await response.json();
+                
+                if (data.ok) {
+                    statusEl.textContent = "✅ Connection established! You can now start the bot.";
+                    statusEl.style.color = "#4ade80"; // green
+                } else {
+                    statusEl.textContent = "❌ Error: " + (data.description || "Unknown error");
+                    statusEl.style.color = "#f87171"; // red
+                }
+            } catch (err) {
+                statusEl.textContent = "❌ Network Error: " + err.message;
+                statusEl.style.color = "#f87171"; // red
+                console.error(err);
+            }
+        }
+    </script>
+  </body>
+</html>

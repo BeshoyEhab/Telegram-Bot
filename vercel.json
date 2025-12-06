@@ -8,6 +8,14 @@
     ],
     "routes": [
         {
+            "src": "/",
+            "dest": "/index.html"
+        },
+        {
+            "src": "/setup",
+            "dest": "/api/setup.py"
+        },
+        {
             "src": "/api/webhook",
             "dest": "/api/webhook.py"
         }
