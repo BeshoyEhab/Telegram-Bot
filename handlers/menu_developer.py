@@ -13,7 +13,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 
-from config import ROLE_DEVELOPER
+from config import ROLE_DEVELOPER, ROLE_STUDENT, ROLE_TEACHER, ROLE_LEADER, ROLE_MANAGER
 from middleware.auth import require_role, get_user_lang
 from database import get_table_counts
 from utils import get_translation
@@ -74,10 +74,10 @@ async def mimic_mode_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     lang = get_user_lang(context)
-    from database.operations import get_users_by_role
+    from database.operations import get_users_by_role, get_all_users
     
     # Get available users to mimic
-    all_users = get_users_by_role(None)
+    all_users = get_all_users()
     
     message = f"🎭 {get_translation(lang, 'mimic_mode')}\n"
     message += f"👥 {len(all_users)} {get_translation(lang, 'total_users')}\n"
@@ -381,7 +381,7 @@ async def mimic_students_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
 
     lang = get_user_lang(context)
-    from database.operations import get_users_by_role, ROLE_STUDENT
+    from database.operations import get_users_by_role
     
     students = get_users_by_role(ROLE_STUDENT)
     
@@ -431,7 +431,7 @@ async def mimic_teachers_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
 
     lang = get_user_lang(context)
-    from database.operations import get_users_by_role, ROLE_TEACHER
+    from database.operations import get_users_by_role
     
     teachers = get_users_by_role(ROLE_TEACHER)
     
@@ -474,7 +474,7 @@ async def mimic_leaders_list(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
 
     lang = get_user_lang(context)
-    from database.operations import get_users_by_role, ROLE_LEADER
+    from database.operations import get_users_by_role
     
     leaders = get_users_by_role(ROLE_LEADER)
     
@@ -517,7 +517,7 @@ async def mimic_managers_list(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
 
     lang = get_user_lang(context)
-    from database.operations import get_users_by_role, ROLE_MANAGER
+    from database.operations import get_users_by_role
     
     managers = get_users_by_role(ROLE_MANAGER)
     
@@ -560,7 +560,7 @@ async def mimic_developers_list(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
 
     lang = get_user_lang(context)
-    from database.operations import get_users_by_role, ROLE_DEVELOPER
+    from database.operations import get_users_by_role
     
     developers = get_users_by_role(ROLE_DEVELOPER)
     

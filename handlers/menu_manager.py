@@ -31,13 +31,13 @@ async def broadcast_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     lang = get_user_lang(context)
     
-    from database.operations import get_users_by_role, get_user_by_telegram_id
+    from database.operations import get_users_by_role, get_user_by_telegram_id, get_all_users
     
     user_id = context.user_data.get("telegram_id")
     manager = get_user_by_telegram_id(user_id)
     
     # Get counts of different user types
-    all_users = get_users_by_role(None)  # Get all users
+    all_users = get_all_users()  # Get all users
     
     message = f"📢 {get_translation(lang, 'broadcast_message')}\n"
     message += f"👥 {len(all_users)} {get_translation(lang, 'total_users')}\n"
@@ -216,10 +216,10 @@ async def export_data_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     lang = get_user_lang(context)
     
-    from database.operations import get_users_by_role, get_all_attendance_records
+    from database.operations import get_users_by_role, get_all_attendance_records, get_all_users
     
     # Get data statistics
-    all_users = get_users_by_role(None)
+    all_users = get_all_users()
     all_attendance = get_all_attendance_records()
     
     message = f"📤 {get_translation(lang, 'export_data')}\n"
