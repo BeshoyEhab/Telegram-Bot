@@ -354,9 +354,9 @@ def register_manager_handlers(application):
         pattern="^manager_backup_info$"
     ))
     
-    # Export sub-handlers
+    # Export sub-handlers (format selection)
     application.add_handler(CallbackQueryHandler(
-        export_users,
+        export_users_to_file,
         pattern="^manager_export_users$"
     ))
     application.add_handler(CallbackQueryHandler(
@@ -371,11 +371,41 @@ def register_manager_handlers(application):
         export_full_report,
         pattern="^manager_export_report$"
     ))
-    application.add_handler(CallbackQueryHandler(
-        export_csv,
-        pattern="^manager_export_csv$"
-    ))
     
+    # Export format-specific handlers
+    application.add_handler(CallbackQueryHandler(
+        execute_users_export_csv,
+        pattern="^export_users_csv$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        execute_users_export_excel,
+        pattern="^export_users_excel$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        execute_attendance_export_csv,
+        pattern="^export_attendance_csv$"
+    ))
+    application.add_handler(CallbackQueryHandler(
+        execute_attendance_export_excel,
+        pattern="^export_attendance_excel$"
+    ))
+    # Register new format-specific handlers for class stats and full report
+    application.add_handler(CallbackQueryHandler(execute_stats_export_csv, pattern="^export_stats_csv$"))
+    application.add_handler(CallbackQueryHandler(execute_stats_export_excel, pattern="^export_stats_excel$"))
+    application.add_handler(CallbackQueryHandler(execute_report_export_csv, pattern="^export_report_csv$"))
+    application.add_handler(CallbackQueryHandler(execute_report_export_excel, pattern="^export_report_excel$"))
+    
+    # Message handler for broadcast (capturing broadcast message)
+
+    from telegram.ext import MessageHandler, filters, ConversationHandler
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            handle_broadcast_message_input,
+            block=False
+        )
+    )
+
     logger.info("Manager menu handlers registered")
 
 
@@ -388,18 +418,17 @@ async def broadcast_to_all_users(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
 
+    # Store the target in context
+    context.user_data['broadcast_target'] = 'all'
+
     lang = get_user_lang(context)
-    message = (
-        "📢 Broadcast to All Users feature coming soon!\n\n"
-        "This will send a message to all registered users (students, teachers, leaders, managers, and developers)."
-        if lang == "en"
-        else "📢 ميزة الإرسال لجميع المستخدمين قادمة قريباً!\n\n"
-        "سيتم إرسال رسالة لجميع المستخدمين المسجلين (طلاب، معلمين، قادة، مديرين، ومطورين)."
-    )
+    message = f"📢 **{get_translation(lang, 'broadcast_to_all_users')}**\n\n"
+    message += get_translation(lang, 'send_broadcast_message', target=get_translation(lang, 'all_users')) + "\n\n"
+    message += "⚠️ " + get_translation(lang, 'next_message_will_be_broadcasted') + "."
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
-        callback_data="menu_main"
+        callback_data="manager_broadcast"
     )]]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -411,18 +440,17 @@ async def broadcast_to_students(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
 
+    # Store the target in context
+    context.user_data['broadcast_target'] = 'students'
+
     lang = get_user_lang(context)
-    message = (
-        "👨‍🎓 Broadcast to Students feature coming soon!\n\n"
-        "This will send a message to all students in the system."
-        if lang == "en"
-        else "👨‍🎓 ميزة الإرسال للطلاب قادمة قريباً!\n\n"
-        "سيتم إرسال رسالة لجميع الطلاب في النظام."
-    )
+    message = f"👨‍🎓 **{get_translation(lang, 'broadcast_to_students')}**\n\n"
+    message += get_translation(lang, 'send_broadcast_message', target=get_translation(lang, 'students')) + "\n\n"
+    message += "⚠️ " + get_translation(lang, 'next_message_will_be_broadcasted') + "."
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
-        callback_data="menu_main"
+        callback_data="manager_broadcast"
     )]]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -434,18 +462,17 @@ async def broadcast_to_teachers(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
 
+    # Store the target in context
+    context.user_data['broadcast_target'] = 'teachers'
+
     lang = get_user_lang(context)
-    message = (
-        "👨‍🏫 Broadcast to Teachers feature coming soon!\n\n"
-        "This will send a message to all teachers and staff."
-        if lang == "en"
-        else "👨‍🏫 ميزة الإرسال للمعلمين قادمة قريباً!\n\n"
-        "سيتم إرسال رسالة لجميع المعلمين والموظفين."
-    )
+    message = f"👨‍🏫 **{get_translation(lang, 'broadcast_to_teachers')}**\n\n"
+    message += get_translation(lang, 'send_broadcast_message', target=get_translation(lang, 'teachers')) + "\n\n"
+    message += "⚠️ " + get_translation(lang, 'next_message_will_be_broadcasted') + "."
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
-        callback_data="menu_main"
+        callback_data="manager_broadcast"
     )]]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -457,18 +484,17 @@ async def broadcast_to_leaders(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
 
+    # Store the target in context
+    context.user_data['broadcast_target'] = 'leaders'
+
     lang = get_user_lang(context)
-    message = (
-        "👑 Broadcast to Leaders feature coming soon!\n\n"
-        "This will send a message to all class leaders."
-        if lang == "en"
-        else "👑 ميزة الإرسال للقادة قادمة قريباً!\n\n"
-        "سيتم إرسال رسالة لجميع قادة الفصول."
-    )
+    message = f"👑 **{get_translation(lang, 'broadcast_to_leaders')}**\n\n"
+    message += get_translation(lang, 'send_broadcast_message', target=get_translation(lang, 'leaders')) + "\n\n"
+    message += "⚠️ " + get_translation(lang, 'next_message_will_be_broadcasted') + "."
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
-        callback_data="menu_main"
+        callback_data="manager_broadcast"
     )]]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -481,12 +507,21 @@ async def broadcast_urgent_message(update: Update, context: ContextTypes.DEFAULT
     await query.answer()
 
     lang = get_user_lang(context)
+    
+    # Store state
+    context.user_data['broadcast_target'] = 'all'
+    context.user_data['broadcast_urgent'] = True
+    
     message = (
-        "⚠️ Urgent Message feature coming soon!\n\n"
-        "This will send a high-priority message to all users with notification."
+        "⚠️ **URGENT BROADCAST**\n\n"
+        "Please type the urgent message you want to send to ALL users.\n"
+        "This message will be pinned and trigger a notification.\n"
+        "Click Back to cancel."
         if lang == "en"
-        else "⚠️ ميزة الرسالة العاجلة قادمة قريباً!\n\n"
-        "سيتم إرسال رسالة عالية الأولوية لجميع المستخدمين مع إشعار."
+        else "⚠️ **رسالة عاجلة**\n\n"
+        "الرجاء كتابة الرسالة العاجلة التي تريد إرسالها لجميع المستخدمين.\n"
+        "سيتم تثبيت هذه الرسالة وإرسال إشعار.\n"
+        "اضغط رجوع للإلغاء."
     )
 
     keyboard = [[InlineKeyboardButton(
@@ -558,19 +593,53 @@ async def restore_backup(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📥 Restore Backup feature coming soon!\n\n"
-        "This will restore the database from a selected backup file."
-        if lang == "en"
-        else "📥 ميزة استعادة النسخة الاحتياطية قادمة قريباً!\n\n"
-        "سيتم استعادة قاعدة البيانات من ملف نسخة احتياطية محدد."
-    )
-
-    keyboard = [[InlineKeyboardButton(
+    import os
+    from datetime import datetime
+    
+    # List available backups
+    backup_dir = "/home/Bisho/Telegram/backups"
+    if not os.path.exists(backup_dir):
+        message = f"❌ No backup directory found."
+        keyboard = [[InlineKeyboardButton(
+            get_translation(lang, "btn_back"),
+            callback_data="menu_main"
+        )]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+    
+    backup_files = [f for f in os.listdir(backup_dir) if f.endswith('.db')]
+    backup_files.sort(reverse=True)  # Most recent first
+    
+    if not backup_files:
+        message = f"❌ No backup files found."
+        keyboard = [[InlineKeyboardButton(
+            get_translation(lang, "btn_back"),
+            callback_data="menu_main"
+        )]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+    
+    # Show list of backups to restore
+    message = f"📥 **Select Backup to Restore**\n\n"
+    message += f"⚠️ This will replace the current database!\n\n"
+    
+    keyboard = []
+    for i, backup_file in enumerate(backup_files[:5]):  # Show first 5
+        file_path = os.path.join(backup_dir, backup_file)
+        file_size = os.path.getsize(file_path) / 1024
+        mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+        
+        button_text = f"{backup_file} ({file_size:.0f}KB - {mod_time.strftime('%Y-%m-%d %H:%M')})"
+        keyboard.append([InlineKeyboardButton(
+            button_text[:60],  # Truncate if too long
+            callback_data=f"restore_confirm_{backup_file}"
+        )])
+    
+    keyboard.append([InlineKeyboardButton(
         get_translation(lang, "btn_back"),
         callback_data="menu_main"
-    )]]
-
+    )])
+    
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
@@ -581,13 +650,41 @@ async def delete_old_backups(update: Update, context: ContextTypes.DEFAULT_TYPE)
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "🗑️ Delete Old Backups feature coming soon!\n\n"
-        "This will remove backup files older than 30 days."
-        if lang == "en"
-        else "🗑️ ميزة حذف النسخ القديمة قادمة قريباً!\n\n"
-        "سيتم حذف ملفات النسخ الاحتياطية الأقدم من 30 يوماً."
-    )
+    import os
+    from datetime import datetime, timedelta
+    
+    try:
+        backup_dir = "/home/Bisho/Telegram/backups"
+        if not os.path.exists(backup_dir):
+            message = f"❌ No backup directory found."
+        else:
+            # Get all backup files
+            backup_files = [f for f in os.listdir(backup_dir) if f.endswith('.db')]
+            
+            # Delete backups older than 30 days
+            cutoff_date = datetime.now() - timedelta(days=30)
+            deleted_count = 0
+            total_size = 0
+            
+            for backup_file in backup_files:
+                file_path = os.path.join(backup_dir, backup_file)
+                mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+                
+                if mod_time < cutoff_date:
+                    file_size = os.path.getsize(file_path)
+                    os.remove(file_path)
+                    deleted_count += 1
+                    total_size += file_size
+            
+            if deleted_count > 0:
+                size_mb = total_size / (1024 * 1024)
+                message = f"✅ **Cleanup Complete**\n\n"
+                message += f"🗑️ Deleted: {deleted_count} backup(s)\n"
+                message += f"💾 Space freed: {size_mb:.2f} MB"
+            else:
+                message = f"✅ No old backups found (older than 30 days)."
+    except Exception as e:
+        message = f"❌ **Deletion Failed**\n\nError: {str(e)}"
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
@@ -630,93 +727,141 @@ async def backup_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Export handlers
 @require_role(ROLE_MANAGER)
-async def export_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Export all users data."""
+async def export_users_to_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show format selection for user export."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📋 Export Users feature coming soon!\n\n"
-        "This will export all user information including names, phones, roles, and class assignments."
-        if lang == "en"
-        else "📋 ميزة تصدير المستخدمين قادمة قريباً!\n\n"
-        "سيتم تصدير جميع معلومات المستخدمين بما في ذلك الأسماء والهواتف والأدوار وتعيينات الفصول."
-    )
-
-    keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "btn_back"),
-        callback_data="menu_main"
-    )]]
+    
+    message = f"📄 **{get_translation(lang, 'export_users')}**\n\n"
+    message += get_translation(lang, 'select_export_format') + ":"
+    
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📁 " + get_translation(lang, 'export_as_csv'),
+                callback_data="export_users_csv"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "📂 " + get_translation(lang, 'export_as_excel'),
+                callback_data="export_users_excel"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                get_translation(lang, "btn_back"),
+                callback_data="menu_main"
+            )
+        ]
+    ]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_role(ROLE_MANAGER)
 async def export_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Export attendance data."""
+    """Show format selection for attendance export."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📅 Export Attendance feature coming soon!\n\n"
-        "This will export all attendance records with dates, statuses, and notes."
-        if lang == "en"
-        else "📅 ميزة تصدير الحضور قادمة قريباً!\n\n"
-        "سيتم تصدير جميع سجلات الحضور مع التواريخ والحالات والملاحظات."
-    )
-
-    keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "btn_back"),
-        callback_data="menu_main"
-    )]]
+    
+    message = f"📅 **{get_translation(lang, 'export_attendance')}**\n\n"
+    message += get_translation(lang, 'select_export_format') + ":"
+    
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📁 " + get_translation(lang, 'export_as_csv'),
+                callback_data="export_attendance_csv"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "📂 " + get_translation(lang, 'export_as_excel'),
+                callback_data="export_attendance_excel"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                get_translation(lang, "btn_back"),
+                callback_data="menu_main"
+            )
+        ]
+    ]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_role(ROLE_MANAGER)
 async def export_class_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Export class statistics."""
+    """Show format selection for class statistics export."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📊 Export Class Statistics feature coming soon!\n\n"
-        "This will export attendance rates, class performance, and statistical summaries."
-        if lang == "en"
-        else "📊 ميزة تصدير إحصائيات الفصل قادمة قريباً!\n\n"
-        "سيتم تصدير معدلات الحضور وأداء الفصل والملخصات الإحصائية."
-    )
-
-    keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "btn_back"),
-        callback_data="menu_main"
-    )]]
+    
+    message = f"📊 **{get_translation(lang, 'export_class_stats')}**\n\n"
+    message += get_translation(lang, 'select_export_format') + ":"
+    
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📁 " + get_translation(lang, 'export_as_csv'),
+                callback_data="export_stats_csv"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "📂 " + get_translation(lang, 'export_as_excel'),
+                callback_data="export_stats_excel"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                get_translation(lang, "btn_back"),
+                callback_data="menu_main"
+            )
+        ]
+    ]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_role(ROLE_MANAGER)
 async def export_full_report(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Export full system report."""
+    """Show format selection for full report export."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📈 Export Full Report feature coming soon!\n\n"
-        "This will export comprehensive data including users, attendance, statistics, and system information."
-        if lang == "en"
-        else "📈 ميزة تصدير التقرير الكامل قادمة قريباً!\n\n"
-        "سيتم تصدير بيانات شاملة تتضمن المستخدمين والحضور والإحصائيات ومعلومات النظام."
-    )
-
-    keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "btn_back"),
-        callback_data="menu_main"
-    )]]
+    
+    message = f"📈 **{get_translation(lang, 'export_full_report')}**\n\n"
+    message += get_translation(lang, 'select_export_format') + ":"
+    
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📁 " + get_translation(lang, 'export_as_csv'),
+                callback_data="export_report_csv"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "� " + get_translation(lang, 'export_as_excel'),
+                callback_data="export_report_excel"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                get_translation(lang, "btn_back"),
+                callback_data="menu_main"
+            )
+        ]
+    ]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
@@ -742,3 +887,407 @@ async def export_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )]]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+# Handler for broadcast message input
+async def handle_broadcast_message_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle user input for broadcast message."""
+    # Check if user has a broadcast target set
+    if 'broadcast_target' not in context.user_data:
+        return  # Not in broadcast mode
+
+    target = context.user_data.get('broadcast_target')
+    message_text = update.message.text
+    
+    from database.operations import get_users_by_role, get_all_users
+    
+    # Get target users
+    lang = get_user_lang(context)
+    if target == 'all':
+        users = get_all_users()
+        target_label = "All Users"
+    elif target == 'students':
+        users = get_users_by_role(1)
+        target_label = "Students"
+    elif target == 'teachers':
+        users = get_users_by_role(2)
+        target_label = "Teachers"
+    elif target == 'leaders':
+        users = get_users_by_role(3)
+        target_label = "Leaders"
+    else:
+        await update.message.reply_text(get_translation(lang, 'invalid_broadcast_target'))
+        return
+    
+    # Send to all users
+    success_count = 0
+    fail_count = 0
+    
+    for user in users:
+        try:
+            await context.bot.send_message(
+                chat_id=user.telegram_id,
+                text=f"📢 **Broadcast Message**\n\n{message_text}"
+            )
+            success_count += 1
+        except Exception as e:
+            fail_count += 1
+            logger.error(f"Failed to send to {user.telegram_id}: {e}")
+    
+    # Clear broadcast mode
+    del context.user_data['broadcast_target']
+    
+    # Send confirmation
+    result_message = f"✅ **{get_translation(lang, 'broadcast_complete')}**\n\n"
+    result_message += f"{get_translation(lang, 'target')}: {target_label}\n"
+    result_message += f"✅ {get_translation(lang, 'sent')}: {success_count}\n"
+    result_message += f"❌ {get_translation(lang, 'failed')}: {fail_count}\n\n"
+    result_message += f"{get_translation(lang, 'message')}: {message_text[:100]}..."
+    
+    await update.message.reply_text(result_message)
+
+
+# =============================================================================
+# FORMAT-SPECIFIC EXPORT HANDLERS
+# =============================================================================
+
+@require_role(ROLE_MANAGER)
+async def execute_users_export_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute users export as CSV."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from database.operations import get_all_users
+        from utils.export_utils import generate_users_csv, save_csv_to_file
+        
+        users = get_all_users()
+        csv_content = generate_users_csv(users)
+        file_path = save_csv_to_file(csv_content, "users_export")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}\n👥 {len(users)} users"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_MANAGER)
+async def execute_users_export_excel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute users export as Excel."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from database.operations import get_all_users
+        from utils.export_utils import generate_users_excel, save_excel_to_file
+        
+        users = get_all_users()
+        excel_content = generate_users_excel(users)
+        file_path = save_excel_to_file(excel_content, "users_export")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}\n👥 {len(users)} users"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_MANAGER)
+async def execute_attendance_export_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute attendance export as CSV."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from utils.export_utils import generate_attendance_csv, save_csv_to_file
+        
+        csv_content = generate_attendance_csv()
+        record_count = csv_content.count('\n') - 1
+        file_path = save_csv_to_file(csv_content, "attendance_export")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}\n📅 {record_count} records"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_MANAGER)
+async def execute_attendance_export_excel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute attendance export as Excel."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from utils.export_utils import generate_attendance_excel, save_excel_to_file
+        
+        excel_content = generate_attendance_excel()
+        file_path = save_excel_to_file(excel_content, "attendance_export")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+# =============================================================================
+# FORMAT-SPECIFIC EXPORT HANDLERS (Class Stats & Full Report)
+# =============================================================================
+
+@require_role(ROLE_MANAGER)
+async def execute_stats_export_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute class stats export as CSV."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from utils.export_utils import generate_class_stats_csv, save_csv_to_file
+        
+        csv_content = generate_class_stats_csv()
+        class_count = csv_content.count('\n') - 1
+        file_path = save_csv_to_file(csv_content, "class_stats_export")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}\n🏫 {class_count} classes"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+@require_role(ROLE_MANAGER)
+async def execute_stats_export_excel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute class stats export as Excel."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from utils.export_utils import generate_class_stats_excel, save_excel_to_file
+        
+        excel_content = generate_class_stats_excel()
+        file_path = save_excel_to_file(excel_content, "class_stats_export")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+@require_role(ROLE_MANAGER)
+async def execute_report_export_csv(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute full report export as CSV."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from utils.export_utils import generate_full_report_csv, save_csv_to_file
+        
+        csv_content = generate_full_report_csv()
+        student_count = csv_content.count('\n') - 1
+        file_path = save_csv_to_file(csv_content, "full_report")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}\n👨‍🎓 {student_count} students"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+@require_role(ROLE_MANAGER)
+async def execute_report_export_excel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute full report export as Excel."""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    
+    try:
+        from utils.export_utils import generate_full_report_excel, save_excel_to_file
+        
+        excel_content = generate_full_report_excel()
+        file_path = save_excel_to_file(excel_content, "full_report")
+        
+        # Send file to user
+        with open(file_path, 'rb') as f:
+            await context.bot.send_document(
+                chat_id=update.effective_chat.id,
+                document=f,
+                filename=file_path.split('/')[-1],
+                caption=f"✅ {get_translation(lang, 'export_successful')}"
+            )
+        
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+        message = f"✅ {get_translation(lang, 'export_successful')}"
+    except Exception as e:
+        message = f"❌ **{get_translation(lang, 'export_failed')}**\n\n{get_translation(lang, 'error')}: {str(e)}"
+    
+    keyboard = [[InlineKeyboardButton(get_translation(lang, "btn_back"), callback_data="menu_main")]]
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+async def handle_broadcast_message_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle text messages for broadcast."""
+    user_data = context.user_data
+    target = user_data.get('broadcast_target')
+    
+    # Check if we are waiting for a broadcast message
+    # Note: Using a specific flag or just presence of target check?
+    # Better to check if we came from a broadcast menu.
+    # For now, let's assume if 'broadcast_target' is set, we are in broadcast mode.
+    # But this might be too aggressive if not cleared.
+    # Ideally we should have a specific state or conversation handler.
+    # Given the current simple setup, we check target.
+    
+    if not target:
+        return # Not in broadcast mode
+        
+    lang = get_user_lang(context)
+    message_text = update.message.text
+    is_urgent = user_data.get('broadcast_urgent', False)
+    
+    from database.operations import get_all_users, get_users_by_role
+    from config import ROLE_STUDENT, ROLE_TEACHER, ROLE_LEADER
+    
+    # Identify recipients
+    recipients = []
+    if target == 'all':
+        recipients = get_all_users()
+    elif target == 'students':
+        recipients = get_users_by_role(ROLE_STUDENT)
+    elif target == 'teachers':
+        recipients = get_users_by_role(ROLE_TEACHER)
+    elif target == 'leaders':
+        recipients = get_users_by_role(ROLE_LEADER)
+        
+    if not recipients:
+        await update.message.reply_text(
+            "❌ No recipients found for this group."
+        )
+        # Clear state
+        user_data.pop('broadcast_target', None)
+        user_data.pop('broadcast_urgent', None)
+        return
+
+    # Send messages
+    success_count = 0
+    fail_count = 0
+    
+    prefix = "⚠️ URGENT: " if is_urgent else "📢 "
+    final_message = f"{prefix}\n\n{message_text}"
+    
+    status_msg = await update.message.reply_text(
+        f"⏳ Sending message to {len(recipients)} users..."
+    )
+    
+    for recipient in recipients:
+        try:
+            await context.bot.send_message(
+                chat_id=recipient.telegram_id,
+                text=final_message,
+                disable_notification=not is_urgent
+            )
+            success_count += 1
+        except Exception:
+            fail_count += 1
+            
+    # Clear state
+    user_data.pop('broadcast_target', None)
+    user_data.pop('broadcast_urgent', None)
+    
+    # Report results
+    result_text = (
+        f"✅ Broadcast Completed\n\n"
+        f"Total: {len(recipients)}\n"
+        f"Success: {success_count}\n"
+        f"Failed: {fail_count}"
+    )
+    
+    await status_msg.edit_text(result_text)
+    
+    # Show menu again
+    keyboard = [[InlineKeyboardButton(
+        get_translation(lang, "btn_back"),
+        callback_data="menu_main"
+    )]]
+    await update.message.reply_text(
+        "Return to menu:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+# Register new handlers (add to register_manager_handlers)
+# These lines should be added manually in the register_manager_handlers function where other handlers are registered.

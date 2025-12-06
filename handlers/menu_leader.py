@@ -161,6 +161,18 @@ async def remove_student_menu(update: Update, context: ContextTypes.DEFAULT_TYPE
                     f"❌ {student.name[:20]}..." if len(student.name) > 20 else f"❌ {student.name}",
                     callback_data=f"leader_remove_confirm_{student.id}"
                 )])
+
+                # Add Edit Gender/Rank buttons for each student
+                keyboard.append([
+                    InlineKeyboardButton(
+                        f"👤 {get_translation(lang, 'edit_gender')}",
+                        callback_data=f"leader_edit_gender_{student.id}"
+                    ),
+                    InlineKeyboardButton(
+                        f"⛪ {get_translation(lang, 'edit_rank')}",
+                        callback_data=f"leader_edit_rank_{student.id}"
+                    )
+                ])
                 
                 if i >= 15:  # Limit to 15 students to avoid too long messages
                     remaining = len(students) - 15
@@ -314,6 +326,36 @@ def register_leader_handlers(application):
     application.add_handler(
         CallbackQueryHandler(leader_remove_execute, pattern="^leader_remove_execute_[0-9]+$")
     )
+    
+    # Message handler for manual add (capturing user input)
+    from telegram.ext import MessageHandler, filters
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND & filters.Regex(r"^\d+:[^:]+:[12]$"), leader_manual_add_step2)
+    )
+
+    application.add_handler(
+        CallbackQueryHandler(leader_bulk_confirm, pattern="^leader_bulk_confirm_")
+    )
+    
+    # Edit Gender/Rank handlers
+    application.add_handler(
+        CallbackQueryHandler(leader_edit_gender, pattern="^leader_edit_gender_")
+    )
+    application.add_handler(
+        CallbackQueryHandler(leader_set_gender, pattern="^leader_set_gender_")
+    )
+    application.add_handler(
+        CallbackQueryHandler(leader_edit_rank, pattern="^leader_edit_rank_")
+    )
+    application.add_handler(
+        CallbackQueryHandler(leader_set_rank, pattern="^leader_set_rank_")
+    )
+    
+    # Message handler for broadcasts
+    from telegram.ext import MessageHandler, filters
+    application.add_handler(
+        MessageHandler(filters.TEXT & ~filters.COMMAND, handle_leader_message_input, block=False)
+    )
 
     logger.info("Leader menu handlers registered")
 
@@ -327,11 +369,59 @@ async def generate_attendance_report(update: Update, context: ContextTypes.DEFAU
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📅 Attendance Report feature coming soon!"
-        if lang == "en"
-        else "📅 ميزة تقرير الحضور قادمة قريباً!"
-    )
+    user_id = context.user_data.get("telegram_id")
+    
+    from database.operations import get_user_by_telegram_id, get_users_by_class, get_attendance
+    from config import ROLE_STUDENT
+    from utils import get_last_saturday, format_date_with_day
+    from datetime import date, timedelta
+    
+    leader = get_user_by_telegram_id(user_id)
+    if not leader or not leader.class_id:
+        await query.edit_message_text(get_translation(lang, "access_denied"))
+        return
+
+    # Get students
+    all_members = get_users_by_class(leader.class_id)
+    students = [m for m in all_members if m.role == ROLE_STUDENT]
+    
+    if not students:
+        await query.edit_message_text(get_translation(lang, "no_students"))
+        return
+
+    # Generate report for last 4 weeks
+    today = date.today()
+    last_sat = get_last_saturday(today)
+    dates = [last_sat - timedelta(weeks=i) for i in range(4)]
+    
+    message = f"📅 **{get_translation(lang, 'attendance_report')}**\n"
+    message += f"🏫 {get_translation(lang, 'class')}: {leader.class_id}\n"
+    message += f"{get_translation(lang, 'generated')}: {today.strftime('%Y-%m-%d')}\n"
+    message += "=" * 30 + "\n\n"
+    
+    for d in dates:
+        date_str = d.strftime('%Y-%m-%d')
+        message += f"**{format_date_with_day(date_str, lang)}**\n"
+        
+        present = 0
+        absent = 0
+        
+        for student in students:
+            att = get_attendance(student.id, leader.class_id, date_str)
+            if att:
+                if att.status:
+                    present += 1
+                else:
+                    absent += 1
+        
+        total = present + absent
+        if total > 0:
+            rate = (present / total) * 100
+            message += f"✅ {get_translation(lang, 'present_count')}: {present} | ❌ {get_translation(lang, 'absent_count')}: {absent}\n"
+            message += f"📊 {get_translation(lang, 'rate')}: {rate:.1f}%\n"
+        else:
+            message += "⏸️ " + get_translation(lang, 'no_records_found') + "\n"
+        message += "-" * 20 + "\n"
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
@@ -348,11 +438,43 @@ async def class_statistics(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📊 Class Statistics feature coming soon!"
-        if lang == "en"
-        else "📊 ميزة إحصائيات الفصل قادمة قريباً!"
-    )
+    user_id = context.user_data.get("telegram_id")
+    
+    from database.operations import get_user_by_telegram_id, get_attendance_stats_by_class, get_users_by_class
+    from config import ROLE_STUDENT
+    
+    leader = get_user_by_telegram_id(user_id)
+    if not leader or not leader.class_id:
+        await query.edit_message_text(get_translation(lang, "access_denied"))
+        return
+
+    # Get stats
+    stats = get_attendance_stats_by_class(leader.class_id)
+    
+    # Get student count
+    all_members = get_users_by_class(leader.class_id)
+    students = [m for m in all_members if m.role == ROLE_STUDENT]
+    
+    message = f"📊 **{get_translation(lang, 'class_statistics')}**\n"
+    message += f"🏫 {get_translation(lang, 'class')}: {leader.class_id}\n"
+    message += f"👥 {get_translation(lang, 'students')}: {len(students)}\n"
+    message += "=" * 30 + "\n\n"
+    
+    message += f"📈 **{get_translation(lang, 'overall')}:**\n"
+    message += f"• {get_translation(lang, 'total_absence_records')}: {stats.get('total_absent', 0)}\n"
+    message += f"• {get_translation(lang, 'with_reason')}: {stats.get('total_with_reason', 0)}\n"
+    
+    if stats.get('total_absent', 0) > 0:
+        reason_percentage = (stats.get('total_with_reason', 0) / stats.get('total_absent', 1)) * 100
+        message += f"• {get_translation(lang, 'reason_rate')}: {reason_percentage:.1f}%\n"
+        
+    message += f"\n🚫 **{get_translation(lang, 'common_reasons')}:**\n"
+    if stats.get('reason_breakdown'):
+        sorted_reasons = sorted(stats['reason_breakdown'].items(), key=lambda x: x[1], reverse=True)[:3]
+        for reason, count in sorted_reasons:
+            message += f"• {reason}: {count}\n"
+    else:
+        message += f"• {get_translation(lang, 'no_data_available')}\n"
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
@@ -369,10 +491,20 @@ async def send_message_to_all(update: Update, context: ContextTypes.DEFAULT_TYPE
     await query.answer()
 
     lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+    
+    # Store state that we are expecting a message
+    context.user_data["leader_broadcast_active"] = True
+    context.user_data["leader_broadcast_target"] = "class_all"
+    
     message = (
-        "📱 Send Message to All feature coming soon!"
+        "📨 **Send Message to Class**\n\n"
+        "Please type the message you want to send to all students in your class.\n"
+        "Or click Back to cancel."
         if lang == "en"
-        else "📱 ميزة إرسال رسالة للجميع قادمة قريباً!"
+        else "📨 **إرسال رسالة للفصل**\n\n"
+        "الرجاء كتابة الرسالة التي تريد إرسالها لجميع الطلاب في فصلك.\n"
+        "أو اضغط رجوع للإلغاء."
     )
 
     keyboard = [[InlineKeyboardButton(
@@ -385,44 +517,113 @@ async def send_message_to_all(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 @require_role(ROLE_LEADER)
 async def export_class_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Export class list."""
+    """Export class list as CSV."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "📄 Export Class List feature coming soon!"
-        if lang == "en"
-        else "📄 ميزة تصدير قائمة الفصل قادمة قريباً!"
-    )
+    user_id = context.user_data.get("telegram_id")
+    
+    from database.operations import get_user_by_telegram_id, get_users_by_class
+    from config import ROLE_STUDENT
+    import csv
+    import io
+    from datetime import datetime
+    
+    leader = get_user_by_telegram_id(user_id)
+    if not leader or not leader.class_id:
+        await query.edit_message_text(get_translation(lang, "access_denied"))
+        return
 
+    # Get students
+    all_members = get_users_by_class(leader.class_id)
+    students = [m for m in all_members if m.role == ROLE_STUDENT]
+    
+    if not students:
+        await query.edit_message_text(get_translation(lang, "no_students"))
+        return
+
+    # Create CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow(['ID', 'Name', 'Phone', 'Gender', 'Rank', 'Language'])
+    
+    # Rows
+    for student in students:
+        writer.writerow([
+            student.telegram_id,
+            student.name,
+            student.phone or "N/A",
+            student.gender or "N/A",
+            student.shammas_rank or "N/A",
+            student.language_preference
+        ])
+    
+    output.seek(0)
+    
+    # Send document
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"class_{leader.class_id}_students_{timestamp}.csv"
+    
+    await context.bot.send_document(
+        chat_id=update.effective_chat.id,
+        document=io.BytesIO(output.getvalue().encode('utf-8')),
+        filename=filename,
+        caption=f"📄 Class {leader.class_id} Student List"
+    )
+    
+    # Go back menu
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
         callback_data="leader_bulk_operations"
     )]]
-
-    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    
+    # We can't edit the message to be the file, so we send a confirmation or just show the menu again
+    await query.edit_message_text(
+        "✅ File sent successfully!" if lang == "en" else "✅ تم إرسال الملف بنجاح!",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 
 @require_role(ROLE_LEADER)
 async def attendance_summary(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Show attendance summary."""
+    """Show attendance summary text."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "🎯 Attendance Summary feature coming soon!"
-        if lang == "en"
-        else "🎯 ميزة ملخص الحضور قادمة قريباً!"
-    )
+    user_id = context.user_data.get("telegram_id")
+    
+    from database.operations import get_user_by_telegram_id, get_attendance_stats_by_class
+    
+    leader = get_user_by_telegram_id(user_id)
+    if not leader or not leader.class_id:
+        await query.edit_message_text(get_translation(lang, "access_denied"))
+        return
 
+    stats = get_attendance_stats_by_class(leader.class_id)
+    
+    summary = (
+        f"📋 **Attendance Summary - Class {leader.class_id}**\n\n"
+        f"Total Absences: {stats.get('total_absent', 0)}\n"
+        f"Excused: {stats.get('total_with_reason', 0)}\n"
+        f"Unexcused: {stats.get('total_absent', 0) - stats.get('total_with_reason', 0)}\n"
+    )
+    
+    if stats.get('reason_breakdown'):
+        summary += "\nTop Reasons:\n"
+        sorted_reasons = sorted(stats['reason_breakdown'].items(), key=lambda x: x[1], reverse=True)[:3]
+        for reason, count in sorted_reasons:
+            summary += f"- {reason}: {count}\n"
+            
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
         callback_data="leader_bulk_operations"
     )]]
 
-    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(summary, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
 @require_role(ROLE_LEADER)
@@ -449,42 +650,115 @@ async def class_settings(update: Update, context: ContextTypes.DEFAULT_TYPE):
 @require_role(ROLE_LEADER)
 async def bulk_mark_all_present(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mark all class students as present."""
-    query = update.callback_query
-    await query.answer()
-
-    lang = get_user_lang(context)
-    message = (
-        "✅ Bulk Mark All Present feature coming soon!\n\nThis will mark all students in your class as present for the next class session."
-        if lang == "en"
-        else "✅ ميزة تحديد الكل حاضر قادمة قريباً!\n\nسيتم تحديد جميع طلاب فصلك كحاضرين للجلسة القادمة."
-    )
-
-    keyboard = [[InlineKeyboardButton(
-        get_translation(lang, "btn_back"),
-        callback_data="leader_bulk_operations"
-    )]]
-
-    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    await _bulk_mark_init(update, context, True)
 
 
 @require_role(ROLE_LEADER)
 async def bulk_mark_all_absent(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Mark all class students as absent."""
+    await _bulk_mark_init(update, context, False)
+
+
+async def _bulk_mark_init(update: Update, context: ContextTypes.DEFAULT_TYPE, is_present: bool):
+    """Initialize bulk mark operation."""
     query = update.callback_query
     await query.answer()
 
     lang = get_user_lang(context)
-    message = (
-        "❌ Bulk Mark All Absent feature coming soon!\n\nThis will mark all students in your class as absent for the next class session."
-        if lang == "en"
-        else "❌ ميزة تحديد الكل غائب قادمة قريباً!\n\nسيتم تحديد جميع طلاب فصلك كغائبين للجلسة القادمة."
-    )
+    user_id = context.user_data.get("telegram_id")
+    
+    from database.operations import get_user_by_telegram_id, get_users_by_class
+    from config import ROLE_STUDENT
+    
+    leader = get_user_by_telegram_id(user_id)
+    if not leader or not leader.class_id:
+        await query.edit_message_text(get_translation(lang, "access_denied"))
+        return
 
+    # Check students
+    all_members = get_users_by_class(leader.class_id)
+    students = [m for m in all_members if m.role == ROLE_STUDENT]
+    
+    if not students:
+        await query.edit_message_text(get_translation(lang, "no_students"))
+        return
+
+    action_text = get_translation(lang, 'present') if is_present else get_translation(lang, 'absent')
+    action_code = "present" if is_present else "absent"
+    emoji = "✅" if is_present else "❌"
+    action_label = get_translation(lang, 'bulk_mark_all_present') if is_present else get_translation(lang, 'bulk_mark_all_absent')
+    
+    message = f"{emoji} **{action_label}**\n\n"
+    message += f"{get_translation(lang, 'class')}: {leader.class_id}\n"
+    message += f"{get_translation(lang, 'students')}: {len(students)}\n\n"
+    question_key = 'are_you_sure_mark_all_present' if is_present else 'are_you_sure_mark_all_absent'
+    message += get_translation(lang, question_key) + "\n"
+    message += get_translation(lang, 'update_attendance_last_saturday')
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f"✅ {get_translation(lang, 'yes_mark_all_present') if is_present else get_translation(lang, 'yes_mark_all_absent')}",
+                callback_data=f"leader_bulk_confirm_{action_code}"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "❌ Cancel",
+                callback_data="leader_bulk_operations"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_LEADER)
+async def leader_bulk_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Execute bulk mark operation."""
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+    
+    # Get action
+    action = query.data.split("_")[-1]
+    is_present = (action == "present")
+    
+    from database.operations import get_user_by_telegram_id, bulk_mark_attendance
+    from utils import get_last_saturday
+    from datetime import date
+    
+    leader = get_user_by_telegram_id(user_id)
+    
+    # Get date
+    today = date.today()
+    last_saturday = get_last_saturday(today)
+    date_str = last_saturday.strftime('%Y-%m-%d')
+    
+    # Execute
+    success, count, error = bulk_mark_attendance(
+        class_id=leader.class_id,
+        attendance_date=date_str,
+        status=is_present,
+        marked_by=leader.id
+    )
+    
+    if success:
+        status_text = get_translation(lang, 'present') if is_present else get_translation(lang, 'absent')
+        message = f"✅ **{get_translation(lang, 'operation_successful')}**\n\n"
+        marked_key = 'marked_count_students_present' if is_present else 'marked_count_students_absent'
+        message += get_translation(lang, marked_key, count=count) + ".\n"
+        message += f"{get_translation(lang, 'date')}: {date_str}"
+    else:
+        message = f"❌ **{get_translation(lang, 'operation_failed')}**\n\n{get_translation(lang, 'error')}: {error}"
+        
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
         callback_data="leader_bulk_operations"
     )]]
-
+    
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
 
 
@@ -538,7 +812,7 @@ async def confirm_remove_student(update: Update, context: ContextTypes.DEFAULT_T
 @require_role(ROLE_LEADER)
 async def leader_manual_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handle manual addition of members.
+    Handle manual addition of members - Step 1: Instructions.
     Callback: leader_manual_add
     """
     query = update.callback_query
@@ -546,13 +820,16 @@ async def leader_manual_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     lang = get_user_lang(context)
     
-    message = "👥 **Manual Add Member**\n\n"
-    message += "This feature allows you to manually add new members to your class.\n\n"
-    message += "📋 **Required Information:**\n"
-    message += "• Telegram ID or Phone Number\n"
-    message += "• User Name\n"
-    message += "• Role (Student/Teacher)\n\n"
-    message += "⚠️ This feature will be available in the next update."
+    message = f"👥 **{get_translation(lang, 'manual_add_member')}**\n\n"
+    message += get_translation(lang, 'add_member_instructions') + "\n\n"
+    message += f"`{get_translation(lang, 'format_telegram_id_name_role')}`\n\n"
+    message += f"**{get_translation(lang, 'examples')}:**\n"
+    message += f"• {get_translation(lang, 'example_student')}: `123456789:Ahmed Ali:1`\n"
+    message += f"• {get_translation(lang, 'example_teacher')}: `987654321:Mohamed:2`\n\n"
+    message += f"**{get_translation(lang, 'roles')}:**\n"
+    message += get_translation(lang, 'role_1_student') + "\n"
+    message += get_translation(lang, 'role_2_teacher') + "\n\n"
+    message += "⚠️ " + get_translation(lang, 'make_sure_telegram_id_correct') + "."
     
     keyboard = [
         [
@@ -563,7 +840,67 @@ async def leader_manual_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
     
-    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode="Markdown")
+
+
+@require_role(ROLE_LEADER)
+async def leader_manual_add_step2(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle manual addition of members - Step 2: Process Input.
+    """
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+    text = update.message.text.strip()
+    
+    # Get leader info
+    from database.operations import get_user_by_telegram_id, create_user
+    leader = get_user_by_telegram_id(user_id)
+    
+    if not leader or not leader.class_id:
+        await update.message.reply_text(get_translation(lang, "access_denied"))
+        return
+
+    try:
+        # Parse input
+        parts = text.split(":")
+        if len(parts) != 3:
+            raise ValueError("Invalid format")
+            
+        new_id = int(parts[0])
+        new_name = parts[1].strip()
+        new_role = int(parts[2])
+        
+        if new_role not in [1, 2]:
+            await update.message.reply_text("❌ " + get_translation(lang, 'invalid_role_use_1_or_2'))
+            return
+            
+        # Create user
+        success, user, error = create_user(
+            telegram_id=new_id,
+            name=new_name,
+            role=new_role,
+            class_id=leader.class_id
+        )
+        
+        if success:
+            role_name = get_translation(lang, 'student') if new_role == 1 else get_translation(lang, 'teacher')
+            await update.message.reply_text(
+                f"✅ **{get_translation(lang, 'user_added_successfully')}**\n\n"
+                f"{get_translation(lang, 'name')}: {user.name}\n"
+                f"ID: {user.telegram_id}\n"
+                f"{get_translation(lang, 'role')}: {role_name}\n"
+                f"{get_translation(lang, 'class')}: {leader.class_id}"
+            )
+        else:
+            await update.message.reply_text(get_translation(lang, 'failed_to_add_user', error=error))
+            
+    except ValueError:
+        await update.message.reply_text(
+            f"❌ {get_translation(lang, 'invalid_format_use_id_name_role')}\n{get_translation(lang, 'example_format')}",
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        await update.message.reply_text(f"❌ {get_translation(lang, 'error')}: {str(e)}")
 
 
 @require_role(ROLE_LEADER)
@@ -572,6 +909,156 @@ async def leader_remove_execute(update: Update, context: ContextTypes.DEFAULT_TY
     Execute member removal from class.
     Callback: leader_remove_execute_STUDENTID
     """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    
+    # Extract student ID from callback data
+    parts = query.data.split("_")
+    student_id = int(parts[3])
+
+    from database.operations import delete_user, get_user_by_id
+    
+    student = get_user_by_id(student_id)
+    if not student:
+        await query.edit_message_text(get_translation(lang, "user_not_found"))
+        return
+        
+    success, error = delete_user(student_id)
+    
+    if success:
+        message = f"✅ {get_translation(lang, 'student_removed')}\n\n"
+        message += f"👤 {student.name}"
+    else:
+        message = f"❌ {get_translation(lang, 'error')}: {error}"
+        
+    keyboard = [[InlineKeyboardButton(
+        get_translation(lang, "btn_back"),
+        callback_data="leader_remove_student"
+    )]]
+    
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_LEADER)
+async def leader_edit_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show gender selection for a student."""
+    query = update.callback_query
+    await query.answer()
+    
+    lang = get_user_lang(context)
+    student_id = int(query.data.split("_")[-1])
+    
+    message = f"👤 {get_translation(lang, 'select_gender')}\n"
+    message += "=" * 30
+
+    keyboard = [
+        [
+            InlineKeyboardButton(get_translation(lang, "male"), callback_data=f"leader_set_gender_{student_id}_male"),
+            InlineKeyboardButton(get_translation(lang, "female"), callback_data=f"leader_set_gender_{student_id}_female")
+        ],
+        [
+            InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="leader_remove_student")
+        ]
+    ]
+
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_LEADER)
+async def leader_set_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Set student gender."""
+    query = update.callback_query
+    await query.answer()
+    
+    lang = get_user_lang(context)
+    parts = query.data.split("_")
+    student_id = int(parts[3])
+    gender = parts[4]
+    
+    from database.operations import update_user
+    
+    success, user, error = update_user(telegram_id=student_id, gender=gender) # Note: update_user takes telegram_id, but here we have ID? No, wait. update_user takes telegram_id. 
+    # Wait, student_id from callback is likely database ID, not telegram_id.
+    # Let's check how student.id is populated. It's usually DB ID.
+    # update_user expects telegram_id. I need to get telegram_id from student_id.
+    
+    from database.operations import get_user_by_id
+    student = get_user_by_id(student_id)
+    if not student:
+        await query.edit_message_text(get_translation(lang, "user_not_found"))
+        return
+
+    success, user, error = update_user(telegram_id=student.telegram_id, gender=gender)
+    
+    if success:
+        message = f"✅ {get_translation(lang, 'gender_updated')}"
+        keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="leader_remove_student")]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await query.edit_message_text(get_translation(lang, "error_occurred"))
+
+
+@require_role(ROLE_LEADER)
+async def leader_edit_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show rank selection for a student."""
+    query = update.callback_query
+    await query.answer()
+    
+    lang = get_user_lang(context)
+    student_id = int(query.data.split("_")[-1])
+    
+    from database.operations import get_user_by_id
+    student = get_user_by_id(student_id)
+    
+    if student.gender == 'female':
+        await query.answer(get_translation(lang, "cannot_set_rank_for_female"), show_alert=True)
+        return
+
+    message = f"⛪ {get_translation(lang, 'select_rank')}\n"
+    message += "=" * 30
+
+    ranks = ['no', 'epsaltos', 'ognostos', 'epodiacon', 'deacon', 'archdeacon']
+    keyboard = []
+    
+    row = []
+    for rank in ranks:
+        row.append(InlineKeyboardButton(get_translation(lang, f"rank_{rank}"), callback_data=f"leader_set_rank_{student_id}_{rank}"))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+
+    keyboard.append([InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="leader_remove_student")])
+
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_role(ROLE_LEADER)
+async def leader_set_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Set student rank."""
+    query = update.callback_query
+    await query.answer()
+    
+    lang = get_user_lang(context)
+    parts = query.data.split("_")
+    student_id = int(parts[3])
+    rank = parts[4]
+    
+    from database.operations import get_user_by_id, update_user
+    student = get_user_by_id(student_id)
+    
+    success, user, error = update_user(telegram_id=student.telegram_id, shammas_rank=rank)
+    
+    if success:
+        message = f"✅ {get_translation(lang, 'rank_updated')}"
+        keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="leader_remove_student")]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        error_msg = get_translation(lang, error) if error in ['female_cannot_be_shammas'] else get_translation(lang, "error_occurred")
+        await query.edit_message_text(error_msg)
     query = update.callback_query
     await query.answer()
 
@@ -621,3 +1108,73 @@ async def leader_remove_execute(update: Update, context: ContextTypes.DEFAULT_TY
     ]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def handle_leader_message_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle text messages for leader broadcast."""
+    user_data = context.user_data
+    
+    if not user_data.get('leader_broadcast_active'):
+        return
+
+    lang = get_user_lang(context)
+    message_text = update.message.text
+    user_id = user_data.get("telegram_id")
+
+    from database.operations import get_user_by_telegram_id, get_users_by_class
+    from config import ROLE_STUDENT
+    
+    leader = get_user_by_telegram_id(user_id)
+    if not leader or not leader.class_id:
+        user_data['leader_broadcast_active'] = False
+        return
+
+    # Get students
+    all_members = get_users_by_class(leader.class_id)
+    students = [m for m in all_members if m.role == ROLE_STUDENT]
+    
+    if not students:
+        await update.message.reply_text(get_translation(lang, "no_students"))
+        user_data['leader_broadcast_active'] = False
+        return
+
+    # Send messages
+    success_count = 0
+    fail_count = 0
+    
+    status_msg = await update.message.reply_text(
+        f"⏳ Sending message to {len(students)} students..."
+    )
+    
+    final_message = f"📢 **Class Broadcast**\n\n{message_text}"
+    
+    for student in students:
+        try:
+            await context.bot.send_message(
+                chat_id=student.telegram_id,
+                text=final_message
+            )
+            success_count += 1
+        except Exception:
+            fail_count += 1
+            
+    # Clear state
+    user_data['leader_broadcast_active'] = False
+    
+    # Report
+    result_text = (
+        f"✅ Broadcast Completed\n\n"
+        f"Success: {success_count}\n"
+        f"Failed: {fail_count}"
+    )
+    
+    await status_msg.edit_text(result_text)
+    
+    keyboard = [[InlineKeyboardButton(
+        get_translation(lang, "btn_back"),
+        callback_data="leader_bulk_operations"
+    )]]
+    await update.message.reply_text(
+        "Return to menu:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )

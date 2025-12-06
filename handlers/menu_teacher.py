@@ -19,7 +19,7 @@ from middleware.auth import require_role, get_user_lang, get_user_by_telegram_id
 from database.operations import (
     get_user_by_telegram_id, get_users_by_class, 
     get_attendance_stats_by_class, count_attendance,
-    get_class_attendance, get_attendance
+    get_class_attendance, get_attendance, delete_class_attendance
 )
 from database import get_db
 from utils import get_translation, get_last_saturday, get_next_saturday, format_date_with_day
@@ -386,8 +386,9 @@ async def edit_attendance_menu(update: Update, context: ContextTypes.DEFAULT_TYP
     message += "• Quick edit for last Saturday\n"
     message += "• Edit for any specific date\n\n"
     message += "🗑️ **Bulk Operations:**\n"
-    message += "• Mark all as present\n"
-    message += "• Mark all as absent\n\n"
+    message += "• " + get_translation(lang, "mark_all_present") + "\n"
+    message += "• " + get_translation(lang, "mark_all_absent") + "\n"
+    message += "• " + get_translation(lang, "delete_all_records") + "\n\n"
     message += "📊 **Review & Export:**\n"
     message += "• View recent attendance\n"
     message += "• Export attendance data"
@@ -415,6 +416,12 @@ async def edit_attendance_menu(update: Update, context: ContextTypes.DEFAULT_TYP
             InlineKeyboardButton(
                 "❌ " + get_translation(lang, "mark_all_absent"),
                 callback_data=f"teacher_bulk_{class_id}_absent"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "🗑️ " + get_translation(lang, "delete_records"),
+                callback_data=f"teacher_delete_date_{class_id}_select"
             )
         ],
         [
@@ -630,6 +637,15 @@ def register_teacher_handlers(application):
     application.add_handler(
         CallbackQueryHandler(show_reason_statistics, pattern="^teacher_reason_stats$")
     )
+    application.add_handler(
+        CallbackQueryHandler(delete_attendance_date_selection, pattern="^teacher_delete_date_")
+    )
+    application.add_handler(
+        CallbackQueryHandler(delete_attendance_confirm, pattern="^teacher_delete_confirm_")
+    )
+    application.add_handler(
+        CallbackQueryHandler(delete_attendance_execute, pattern="^teacher_delete_execute_")
+    )
 
     logger.info("Teacher menu handlers registered")
 
@@ -743,5 +759,145 @@ async def edit_attendance_view_recent(update: Update, context: ContextTypes.DEFA
 
     await query.edit_message_text(
         message, 
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+@require_role(ROLE_TEACHER)
+async def delete_attendance_date_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Show date selection for deleting attendance.
+    Callback: teacher_delete_date_CLASSID_select
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+
+    # Get teacher from database
+    teacher = get_user_by_telegram_id(user_id)
+    if not teacher or not teacher.class_id:
+        await query.edit_message_text(get_translation(lang, "access_denied"))
+        return
+
+    # Extract class_id
+    try:
+        class_id = int(query.data.split("_")[3])
+    except (IndexError, ValueError):
+        class_id = teacher.class_id
+
+    message = f"🗑️ **{get_translation(lang, 'delete_attendance_records')}**\n"
+    message += f"{get_translation(lang, 'class')}: {class_id}\n\n"
+    message += get_translation(lang, 'select_records_to_delete') + ":\n"
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "📅 " + get_translation(lang, "last_saturday"),
+                callback_data=f"teacher_delete_confirm_{class_id}_last"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "⬅️ " + get_translation(lang, "back"),
+                callback_data=f"teacher_edit_attendance_{class_id}"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+@require_role(ROLE_TEACHER)
+async def delete_attendance_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Confirm deletion of attendance records.
+    Callback: teacher_delete_confirm_CLASSID_last
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    
+    # Extract info
+    parts = query.data.split("_")
+    class_id = int(parts[3])
+    date_type = parts[4]  # 'last'
+
+    target_date = None
+    date_str = ""
+    
+    if date_type == "last":
+        today = date.today()
+        target_date = get_last_saturday(today)
+        date_str = target_date.strftime('%Y-%m-%d')
+
+    message = f"⚠️ **{get_translation(lang, 'confirm_deletion')}**\n\n"
+    message += f"{get_translation(lang, 'class')}: {class_id}\n"
+    message += f"{get_translation(lang, 'date')}: {format_date_with_day(date_str, lang)}\n\n"
+    message += get_translation(lang, 'confirm_delete_all_attendance') + "\n"
+    message += get_translation(lang, 'action_cannot_be_undone') + "!"
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "✅ " + get_translation(lang, "yes_delete_all"),
+                callback_data=f"teacher_delete_execute_{class_id}_{date_str}"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                "❌ Cancel",
+                callback_data=f"teacher_edit_attendance_{class_id}"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+@require_role(ROLE_TEACHER)
+async def delete_attendance_execute(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Execute deletion of attendance records.
+    Callback: teacher_delete_execute_CLASSID_DATE
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    
+    # Extract info
+    parts = query.data.split("_")
+    class_id = int(parts[3])
+    date_str = parts[4]
+
+    # Execute deletion
+    success, count, error = delete_class_attendance(class_id, date_str)
+
+    if success:
+        message = f"✅ **{get_translation(lang, 'deletion_successful')}**\n\n"
+        message += get_translation(lang, 'deleted_count', count=count, date=format_date_with_day(date_str, lang))
+    else:
+        message = f"❌ **{get_translation(lang, 'deletion_failed')}**\n\n{get_translation(lang, 'error')}: {error}"
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                "⬅️ " + get_translation(lang, "back"),
+                callback_data=f"teacher_edit_attendance_{class_id}"
+            )
+        ]
+    ]
+
+    await query.edit_message_text(
+        message,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )

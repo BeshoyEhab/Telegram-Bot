@@ -358,6 +358,18 @@ def register_developer_handlers(application):
     
     logger.info("Developer menu handlers registered")
 
+    # Register message handler for inputs (mimic search etc)
+    # Note: This should ideally be a ConversationHandler or checking specific states
+    # For simplicity in this structure, we add a general message handler for developer context
+    from telegram.ext import MessageHandler, filters
+    application.add_handler(
+        MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            handle_developer_message_input,
+            block=False
+        )
+    )
+
 
 # Additional handler functions for mimic mode and system management
 
@@ -591,19 +603,23 @@ async def mimic_search_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     lang = get_user_lang(context)
+    
+    # Store state
+    context.user_data['mimic_search_active'] = True
+    
     message = (
-        "🔍 Search User to Mimic\n\n"
-        "This feature will allow you to search for and select any user by name, phone, or ID.\n\n"
-        "Coming in future update!"
+        "🔍 **Search User to Mimic**\n\n"
+        "Please type the Name, Phone, or ID of the user you want to find.\n"
+        "Click Back to cancel."
         if lang == "en"
-        else "🔍 البحث عن مستخدم للتقليد\n\n"
-        "ستسمح لك هذه الميزة بالبحث عن أي مستخدم واختياره بالاسم أو الهاتف أو المعرف.\n\n"
-        "قادمة في التحديث القادم!"
+        else "🔍 **البحث عن مستخدم للتقليد**\n\n"
+        "الرجاء كتابة الاسم أو الهاتف أو المعرف للمستخدم الذي تريد البحث عنه.\n"
+        "اضغط رجوع للإلغاء."
     )
 
     keyboard = [[InlineKeyboardButton(
         get_translation(lang, "btn_back"),
-        callback_data="menu_main"
+        callback_data="developer_mimic"
     )]]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
@@ -889,3 +905,64 @@ async def system_alerts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )]]
 
     await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+async def handle_developer_message_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle text messages for developer actions."""
+    user_data = context.user_data
+    
+    # Check for mimic search
+    if user_data.get('mimic_search_active'):
+        await _handle_mimic_search(update, context)
+        return
+        
+
+async def _handle_mimic_search(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Process mimic search query."""
+    lang = get_user_lang(context)
+    query_text = update.message.text
+    user_data = context.user_data
+    
+    from database.operations import search_users
+    
+    # Perform search
+    results = search_users(query_text)
+    
+    if not results:
+        await update.message.reply_text(
+            f"❌ No users found matching '{query_text}'. Try again or click Back."
+        )
+        return
+        
+    message = f"🔍 **Search Results for '{query_text}'**\n"
+    message += f"Found {len(results)} users:\n\n"
+    
+    keyboard = []
+    
+    for user in results[:10]:
+        display_text = f"{user.name} ({user.id})"
+        try:
+            role = user.role
+            if role == 5: display_text += " [DEV]"
+            elif role == 4: display_text += " [MGR]"
+            elif role == 3: display_text += " [LDR]"
+            elif role == 2: display_text += " [TCH]"
+        except:
+            pass
+        
+        keyboard.append([InlineKeyboardButton(
+            display_text, 
+            callback_data=f"mimic_user_{user.id}"
+        )])
+        
+    user_data['mimic_search_active'] = False 
+    
+    keyboard.append([InlineKeyboardButton(
+        get_translation(lang, "btn_back"),
+        callback_data="developer_mimic"
+    )])
+    
+    await update.message.reply_text(
+        message,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )

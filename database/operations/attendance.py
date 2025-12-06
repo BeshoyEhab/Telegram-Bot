@@ -476,6 +476,51 @@ def delete_attendance(
         return False, "unknown_error"
 
 
+
+def delete_class_attendance(
+    class_id: int, attendance_date: str
+) -> Tuple[bool, int, str]:
+    """
+    Delete all attendance records for a class on a specific date.
+
+    Args:
+        class_id: Class ID
+        attendance_date: Date string (YYYY-MM-DD)
+
+    Returns:
+        Tuple of (success, count_deleted, error_key)
+    """
+    valid, date_obj, error = validate_saturday(attendance_date)
+    if not valid:
+        return False, 0, error
+
+    try:
+        with get_db() as db:
+            # Get all attendance records for the class and date
+            records = (
+                db.query(Attendance)
+                .filter(
+                    and_(
+                        Attendance.class_id == class_id,
+                        Attendance.date == date_obj,
+                    )
+                )
+                .all()
+            )
+
+            if not records:
+                return True, 0, ""
+
+            count = len(records)
+            for record in records:
+                db.delete(record)
+
+            return True, count, ""
+
+    except Exception as e:
+        return False, 0, "unknown_error"
+
+
 def get_all_attendance_records() -> List[Attendance]:
     """
     Get all attendance records from the database.

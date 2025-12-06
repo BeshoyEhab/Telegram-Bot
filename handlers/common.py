@@ -66,6 +66,8 @@ async def auto_register_user(telegram_id: int, telegram_user) -> bool:
         role=role,
         class_id=class_id,
         language_preference="ar",  # Default to Arabic
+        gender="male",  # Default
+        shammas_rank="no",  # Default
     )
 
     if success:

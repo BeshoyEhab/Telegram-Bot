@@ -15,7 +15,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, CallbackQueryHandler
 
 from middleware.auth import require_auth, get_user_lang
-from database.operations import get_user_by_telegram_id, get_user_attendance_history
+from database.operations import get_user_by_telegram_id, get_user_attendance_history, update_user
 from database.connection import get_db
 from utils import get_translation, format_date_with_day, calculate_age
 
@@ -150,6 +150,15 @@ async def view_my_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     message += f"🌐 {get_translation(lang, 'language')}: "
     message += "العربية" if user.language_preference == "ar" else "English"
+    message += "\n"
+
+    # Gender & Rank
+    gender_text = get_translation(lang, user.gender) if user.gender else get_translation(lang, 'male')
+    message += f"👤 {get_translation(lang, 'gender')}: {gender_text}\n"
+
+    if user.gender == 'male':
+        rank_text = get_translation(lang, f"rank_{user.shammas_rank}") if user.shammas_rank else get_translation(lang, 'rank_no')
+        message += f"⛪ {get_translation(lang, 'shammas_rank')}: {rank_text}\n"
 
     keyboard = [
         [
@@ -380,6 +389,124 @@ async def set_language(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(get_translation(lang, "update_failed"))
 
 
+@require_auth
+async def edit_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Show gender selection menu.
+    Callback: student_edit_gender
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    
+    message = f"👤 {get_translation(lang, 'select_gender')}\n"
+    message += "=" * 30
+
+    keyboard = [
+        [
+            InlineKeyboardButton(get_translation(lang, "male"), callback_data="student_set_gender_male"),
+            InlineKeyboardButton(get_translation(lang, "female"), callback_data="student_set_gender_female")
+        ],
+        [
+            InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")
+        ]
+    ]
+
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_auth
+async def set_gender(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Set user gender.
+    Callback: student_set_gender_male | student_set_gender_female
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+    
+    gender = query.data.split("_")[-1]  # male or female
+    
+    success, user, error = update_user(telegram_id=user_id, gender=gender)
+    
+    if success:
+        message = f"✅ {get_translation(lang, 'gender_updated')}"
+        # If female, warn about rank reset if applicable (handled in backend, but good to notify?)
+        # For now just show success and back button
+        
+        keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await query.edit_message_text(get_translation(lang, "error_occurred"))
+
+
+@require_auth
+async def edit_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Show rank selection menu.
+    Callback: student_edit_rank
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+    user = get_user_by_telegram_id(user_id)
+    
+    # Check if female
+    if user.gender == 'female':
+        await query.answer(get_translation(lang, "cannot_set_rank_for_female"), show_alert=True)
+        return
+
+    message = f"⛪ {get_translation(lang, 'select_rank')}\n"
+    message += "=" * 30
+
+    ranks = ['no', 'epsaltos', 'ognostos', 'epodiacon', 'deacon', 'archdeacon']
+    keyboard = []
+    
+    # Create rows of 2 buttons
+    row = []
+    for rank in ranks:
+        row.append(InlineKeyboardButton(get_translation(lang, f"rank_{rank}"), callback_data=f"student_set_rank_{rank}"))
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if row:
+        keyboard.append(row)
+
+    keyboard.append([InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")])
+
+    await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+
+
+@require_auth
+async def set_rank(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Set user rank.
+    Callback: student_set_rank_{rank}
+    """
+    query = update.callback_query
+    await query.answer()
+
+    lang = get_user_lang(context)
+    user_id = context.user_data.get("telegram_id")
+    
+    rank = query.data.replace("student_set_rank_", "")
+    
+    success, user, error = update_user(telegram_id=user_id, shammas_rank=rank)
+    
+    if success:
+        message = f"✅ {get_translation(lang, 'rank_updated')}"
+        keyboard = [[InlineKeyboardButton("⬅️ " + get_translation(lang, "back"), callback_data="student_my_details")]]
+        await query.edit_message_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        error_msg = get_translation(lang, error) if error in ['female_cannot_be_shammas'] else get_translation(lang, "error_occurred")
+        await query.edit_message_text(error_msg)
+
+
 def register_student_handlers(application):
     """
     Register student menu handlers.
@@ -404,6 +531,18 @@ def register_student_handlers(application):
     )
     application.add_handler(
         CallbackQueryHandler(set_language, pattern="^student_set_language_en$")
+    )
+    application.add_handler(
+        CallbackQueryHandler(edit_gender, pattern="^student_edit_gender$")
+    )
+    application.add_handler(
+        CallbackQueryHandler(set_gender, pattern="^student_set_gender_")
+    )
+    application.add_handler(
+        CallbackQueryHandler(edit_rank, pattern="^student_edit_rank$")
+    )
+    application.add_handler(
+        CallbackQueryHandler(set_rank, pattern="^student_set_rank_")
     )
 
     logger.info("Student menu handlers registered")

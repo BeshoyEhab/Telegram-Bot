@@ -51,6 +51,8 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_active = Column(DateTime, default=datetime.utcnow)
+    gender = Column(String(10), default="male")  # 'male' or 'female'
+    shammas_rank = Column(String(20), default="no")  # 'no', 'epsaltos', etc.
 
     # Relationships - explicitly specify foreign_keys to avoid ambiguity
     enrolled_classes = relationship(
@@ -71,6 +73,11 @@ class User(Base):
     logs = relationship("Log", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship(
         "Notification", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        Index("idx_users_gender", "gender"),
+        Index("idx_users_shammas", "shammas_rank"),
     )
 
     def __repr__(self):

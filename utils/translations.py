@@ -218,6 +218,25 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'classes': 'Classes',
         'feature_coming_soon': 'This feature is coming soon!',
         'please_wait': 'Please wait for the next phase',
+
+        # Gender & Rank
+        'gender': 'Gender',
+        'male': 'Male',
+        'female': 'Female',
+        'shammas_rank': 'Deacon Rank',
+        'rank_no': 'No Rank',
+        'rank_epsaltos': 'Epsaltos',
+        'rank_ognostos': 'Ognostos',
+        'rank_epodiacon': 'Epodiacon',
+        'rank_deacon': 'Deacon',
+        'rank_archdeacon': 'Archdeacon',
+        'select_gender': 'Select Gender',
+        'select_rank': 'Select Deacon Rank',
+        'gender_updated': 'Gender updated successfully!',
+        'rank_updated': 'Rank updated successfully!',
+        'edit_gender': 'Edit Gender',
+        'edit_rank': 'Edit Rank',
+        'cannot_set_rank_for_female': 'Females cannot have a deacon rank.',
         
         # Errors
         'error': 'Error',
@@ -229,6 +248,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'rate_limit': 'Too many requests. Please wait 30 seconds.',
         'user_not_found': 'User not found.',
         'class_not_found': 'Class not found.',
+        'has_marked_attendance': 'Cannot delete user who has marked attendance records.',
         
         # Validation Errors
         'phone_required': 'Phone number is required',
@@ -310,6 +330,94 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # Phase 3 Day 3 - Statistics
         'reason_statistics': 'Reason Statistics',
         'no_absences_to_analyze': 'No absences to analyze.',
+        
+        # Phase 3 - Teacher Menu: Delete Attendance
+        'delete_records': 'Delete Records',
+        'delete_all_records': 'Delete all records',
+        'delete_attendance_records': 'Delete Attendance Records',
+        'select_records_to_delete': 'Select which records to delete',
+        'confirm_deletion': 'Confirm Deletion',
+        'confirm_delete_all_attendance': 'Are you sure you want to delete ALL attendance records for this date?',
+        'action_cannot_be_undone': 'This action cannot be undone!',
+        'yes_delete_all': 'Yes, Delete All',
+        'deletion_successful': 'Deletion Successful',
+        'deletion_failed': 'Deletion Failed',
+        'deleted_count': 'Deleted {count} records for {date}.',
+        
+        # Phase 3 - Leader Menu: Manual Add Student
+        'manual_add_member': 'Manual Add Member',
+        'add_member_instructions': 'To add a new member to your class, please send a message in the following format:',
+        'format_telegram_id_name_role': 'TelegramID:Name:Role',
+        'examples': 'Examples',
+        'example_student': 'Student',
+        'example_teacher': 'Teacher',
+        'roles': 'Roles',
+        'role_1_student': '1 = Student',
+        'role_2_teacher': '2 = Teacher',
+        'make_sure_telegram_id_correct': 'Make sure the Telegram ID is correct',
+        'invalid_role_use_1_or_2': 'Invalid role. Use 1 for Student, 2 for Teacher.',
+        'user_added_successfully': 'User Added Successfully',
+        'failed_to_add_user': 'Failed to add user: {error}',
+        'invalid_format_use_id_name_role': 'Invalid format. Please use: TelegramID:Name:Role',
+        'example_format': 'Example: 123456789:Ahmed:1',
+        
+        # Phase 3 - Leader Menu: Bulk Mark
+        'bulk_mark_all_present': 'Bulk Mark All Present',
+        'bulk_mark_all_absent': 'Bulk Mark All Absent',
+        'are_you_sure_mark_all_present': 'Are you sure you want to mark ALL students as PRESENT?',
+        'are_you_sure_mark_all_absent': 'Are you sure you want to mark ALL students as ABSENT?',
+        'update_attendance_last_saturday': 'This will update attendance for the last Saturday.',
+        'yes_mark_all_present': 'Yes, Mark All Present',
+        'yes_mark_all_absent': 'Yes, Mark All Absent',
+        'operation_successful': 'Operation Successful',
+        'operation_failed': 'Operation Failed',
+        'marked_count_students_present': 'Marked {count} students as Present',
+        'marked_count_students_absent': 'Marked {count} students as Absent',
+        'date': 'Date',
+        
+        # Phase 3 - Leader Menu: Statistics
+        'overall': 'Overall',
+        'total_absence_records': 'Total Absence Records',
+        'reason_rate': 'Reason Rate',
+        'common_reasons': 'Common Reasons',
+        'no_data_available': 'No data available',
+        
+        # Phase 3 - Leader Menu: Reports
+        'attendance_report': 'Attendance Report',
+        'generated': 'Generated',
+        'present_count': 'Present',
+        'absent_count': 'Absent',
+        'rate': 'Rate',
+        'no_records_found': 'No records found',
+        
+        # Phase 3 - Manager Menu: Broadcast
+        'broadcast_to_all_users': 'Broadcast to All Users',
+        'broadcast_to_students': 'Broadcast to Students',
+        'broadcast_to_teachers': 'Broadcast to Teachers',
+        'broadcast_to_leaders': 'Broadcast to Leaders',
+        'send_broadcast_message': 'Please send the message you want to broadcast to {target}.',
+        'next_message_will_be_broadcasted': 'The next message you send will be broadcasted.',
+        'broadcast_complete': 'Broadcast Complete',
+        'target': 'Target',
+        'sent': 'Sent',
+        'failed': 'Failed',
+        'invalid_broadcast_target': 'Invalid broadcast target.',
+        
+        # Phase 3 - Export System
+        'export_successful': 'Export Successful',
+        'export_failed': 'Export Failed',
+        'select_export_format': 'Select Export Format',
+        'export_as_csv': 'Export as CSV',
+        'export_as_excel': 'Export as Excel',
+        'file': 'File',
+        'location': 'Location',
+        'total_records': 'Total Records',
+        'total_classes': 'Total Classes',
+        'total_users': 'Total Users',
+        'export_users': 'Export Users',
+        'export_attendance': 'Export Attendance',
+        'export_class_stats': 'Export Class Statistics',
+        'export_full_report': 'Export Full Report',
     },
     
     'ar': {
@@ -516,6 +624,25 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'classes': 'الفصول',
         'feature_coming_soon': 'هذه الميزة قادمة قريباً!',
         'please_wait': 'يرجى الانتظار للمرحلة القادمة',
+
+        # Gender & Rank
+        'gender': 'النوع',
+        'male': 'ذكر',
+        'female': 'أنثى',
+        'shammas_rank': 'رتبة الشماسية',
+        'rank_no': 'لا يوجد',
+        'rank_epsaltos': 'إبصالتس',
+        'rank_ognostos': 'أغنسطس',
+        'rank_epodiacon': 'إيبودياكون',
+        'rank_deacon': 'دياكون',
+        'rank_archdeacon': 'أرشيدياكون',
+        'select_gender': 'اختر النوع',
+        'select_rank': 'اختر رتبة الشماسية',
+        'gender_updated': 'تم تحديث النوع بنجاح!',
+        'rank_updated': 'تم تحديث الرتبة بنجاح!',
+        'edit_gender': 'تعديل النوع',
+        'edit_rank': 'تعديل الرتبة',
+        'cannot_set_rank_for_female': 'لا يمكن للإناث الحصول على رتبة شماسية.',
         
         # Errors
         'error': 'خطأ',
@@ -527,6 +654,7 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         'rate_limit': 'طلبات كثيرة جداً. يرجى الانتظار 30 ثانية.',
         'user_not_found': 'المستخدم غير موجود.',
         'class_not_found': 'الفصل غير موجود.',
+        'has_marked_attendance': 'لا يمكن حذف مستخدم قام بتسجيل حضور.',
         
         # Validation Errors
         'phone_required': 'رقم الهاتف مطلوب',
@@ -608,6 +736,94 @@ TRANSLATIONS: Dict[str, Dict[str, str]] = {
         # Phase 3 Day 3 - Statistics
         'reason_statistics': 'إحصائيات الأسباب',
         'no_absences_to_analyze': 'لا توجد غيابات لتحليلها.',
+        
+        # Phase 3 - Teacher Menu: Delete Attendance
+        'delete_records': 'حذف السجلات',
+        'delete_all_records': 'حذف جميع السجلات',
+        'delete_attendance_records': 'حذف سجلات الحضور',
+        'select_records_to_delete': 'اختر السجلات المراد حذفها',
+        'confirm_deletion': 'تأكيد الحذف',
+        'confirm_delete_all_attendance': 'هل أنت متأكد أنك تريد حذف جميع سجلات الحضور لهذا التاريخ؟',
+        'action_cannot_be_undone': 'لا يمكن التراجع عن هذا الإجراء!',
+        'yes_delete_all': 'نعم، احذف الكل',
+        'deletion_successful': 'تم الحذف بنجاح',
+        'deletion_failed': 'فشل الحذف',
+        'deleted_count': 'تم حذف {count} سجل لتاريخ {date}.',
+        
+        # Phase 3 - Leader Menu: Manual Add Student
+        'manual_add_member': 'إضافة عضو يدوياً',
+        'add_member_instructions': 'لإضافة عضو جديد إلى فصلك، يرجى إرسال رسالة بالتنسيق التالي:',
+        'format_telegram_id_name_role': 'معرف_تليجرام:الاسم:الدور',
+        'examples': 'أمثلة',
+        'example_student': 'طالب',
+        'example_teacher': 'معلم',
+        'roles': 'الأدوار',
+        'role_1_student': '1 = طالب',
+        'role_2_teacher': '2 = معلم',
+        'make_sure_telegram_id_correct': 'تأكد من صحة معرف تليجرام',
+        'invalid_role_use_1_or_2': 'دور غير صحيح. استخدم 1 للطالب، 2 للمعلم.',
+        'user_added_successfully': 'تمت إضافة المستخدم بنجاح',
+        'failed_to_add_user': 'فشلت إضافة المستخدم: {error}',
+        'invalid_format_use_id_name_role': 'تنسيق غير صحيح. يرجى استخدام: معرف_تليجرام:الاسم:الدور',
+        'example_format': 'مثال: 123456789:أحمد:1',
+        
+        # Phase 3 - Leader Menu: Bulk Mark
+        'bulk_mark_all_present': 'تحديد الكل حاضر (جماعي)',
+        'bulk_mark_all_absent': 'تحديد الكل غائب (جماعي)',
+        'are_you_sure_mark_all_present': 'هل أنت متأكد أنك تريد تحديد جميع الطلاب كحاضرين؟',
+        'are_you_sure_mark_all_absent': 'هل أنت متأكد أنك تريد تحديد جميع الطلاب كغائبين؟',
+        'update_attendance_last_saturday': 'سيتم تحديث الحضور للسبت الماضي.',
+        'yes_mark_all_present': 'نعم، حدد الكل حاضر',
+        'yes_mark_all_absent': 'نعم، حدد الكل غائب',
+        'operation_successful': 'تمت العملية بنجاح',
+        'operation_failed': 'فشلت العملية',
+        'marked_count_students_present': 'تم تحديد {count} طالب كحاضرين',
+        'marked_count_students_absent': 'تم تحديد {count} طالب كغائبين',
+        'date': 'التاريخ',
+        
+        # Phase 3 - Leader Menu: Statistics
+        'overall': 'الإجمالي',
+        'total_absence_records': 'إجمالي سجلات الغياب',
+        'reason_rate': 'نسبة الأسباب',
+        'common_reasons': 'الأسباب الشائعة',
+        'no_data_available': 'لا توجد بيانات متاحة',
+        
+        # Phase 3 - Leader Menu: Reports
+        'attendance_report': 'تقرير الحضور',
+        'generated': 'تم الإنشاء',
+        'present_count': 'حاضر',
+        'absent_count': 'غائب',
+        'rate': 'النسبة',
+        'no_records_found': 'لم يتم العثور على سجلات',
+        
+        # Phase 3 - Manager Menu: Broadcast
+        'broadcast_to_all_users': 'الإرسال لجميع المستخدمين',
+        'broadcast_to_students': 'الإرسال للطلاب',
+        'broadcast_to_teachers': 'الإرسال للمعلمين',
+        'broadcast_to_leaders': 'الإرسال للقادة',
+        'send_broadcast_message': 'يرجى إرسال الرسالة التي تريد إرسالها إلى {target}.',
+        'next_message_will_be_broadcasted': 'سيتم إرسال رسالتك القادمة.',
+        'broadcast_complete': 'اكتمل الإرسال',
+        'target': 'الهدف',
+        'sent': 'تم الإرسال',
+        'failed': 'فشل',
+        'invalid_broadcast_target': 'هدف إرسال غير صحيح.',
+        
+        # Phase 3 - Export System
+        'export_successful': 'تم التصدير بنجاح',
+        'export_failed': 'فشل التصدير',
+        'select_export_format': 'اختر نوع التصدير',
+        'export_as_csv': 'تصدير كـ CSV',
+        'export_as_excel': 'تصدير كـ Excel',
+        'file': 'الملف',
+        'location': 'الموقع',
+        'total_records': 'إجمالي السجلات',
+        'total_classes': 'إجمالي الفصول',
+        'export_users': 'تصدير المستخدمين',
+        'total_users': 'إجمالي المستخدمين',
+        'export_attendance': 'تصدير الحضور',
+        'export_class_stats': 'تصدير إحصائيات الفصول',
+        'export_full_report': 'تصدير التقرير الكامل',
     }
 }
 

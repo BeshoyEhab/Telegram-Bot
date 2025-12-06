@@ -34,6 +34,8 @@ def create_user(
     address: Optional[str] = None,
     birthday: Optional[str] = None,
     language_preference: str = "ar",
+    gender: str = "male",
+    shammas_rank: str = "no",
 ) -> Tuple[bool, Optional[User], str]:
     """
     Create a new user with validation.
@@ -47,6 +49,8 @@ def create_user(
         address: Address (optional)
         birthday: Birthday in YYYY-MM-DD format (optional)
         language_preference: Language preference ('ar' or 'en')
+        gender: Gender ('male' or 'female')
+        shammas_rank: Deacon rank ('no', 'epsaltos', etc.)
 
     Returns:
         Tuple of (success, user_object, error_key)
@@ -75,6 +79,18 @@ def create_user(
         if not valid:
             return False, None, error
 
+    # Validate gender and shammas_rank
+    if gender not in ['male', 'female']:
+        return False, None, "invalid_gender"
+    
+    valid_ranks = ['no', 'epsaltos', 'ognostos', 'epodiacon', 'deacon', 'archdeacon']
+    if shammas_rank not in valid_ranks:
+        return False, None, "invalid_shammas_rank"
+        
+    # Business Rule: Females cannot have shammas rank
+    if gender == 'female' and shammas_rank != 'no':
+        return False, None, "female_cannot_be_shammas"
+
     try:
         with get_db() as db:
             # Check if user already exists
@@ -92,6 +108,8 @@ def create_user(
                 address=address,
                 birthday=birthday_date,
                 language_preference=language_preference,
+                gender=gender,
+                shammas_rank=shammas_rank,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
                 last_active=datetime.utcnow(),
@@ -124,6 +142,9 @@ def get_user_by_telegram_id(telegram_id: int) -> Optional[User]:
     with get_db() as db:
         user = db.query(User).filter_by(telegram_id=telegram_id).first()
         if user:
+            # Force load attributes to prevent DetachedInstanceError
+            _ = user.gender
+            _ = user.shammas_rank
             # FIX: Expunge to detach from session
             db.expunge(user)
         return user
@@ -155,6 +176,8 @@ def update_user(
     birthday: Optional[str] = None,
     class_id: Optional[int] = None,
     language_preference: Optional[str] = None,
+    gender: Optional[str] = None,
+    shammas_rank: Optional[str] = None,
 ) -> Tuple[bool, Optional[User], str]:
     """
     Update user information.
@@ -167,6 +190,8 @@ def update_user(
         birthday: New birthday (optional)
         class_id: New class ID (optional)
         language_preference: New language preference (optional)
+        gender: New gender (optional)
+        shammas_rank: New shammas rank (optional)
 
     Returns:
         Tuple of (success, user_object, error_key)
@@ -211,7 +236,31 @@ def update_user(
             if language_preference is not None:
                 user.language_preference = language_preference
 
+            # Update gender
+            if gender is not None:
+                if gender not in ['male', 'female']:
+                    return False, None, "invalid_gender"
+                user.gender = gender
+                
+                # If changing to female, must reset shammas rank
+                if gender == 'female':
+                    user.shammas_rank = 'no'
+
+            # Update shammas rank
+            if shammas_rank is not None:
+                valid_ranks = ['no', 'epsaltos', 'ognostos', 'epodiacon', 'deacon', 'archdeacon']
+                if shammas_rank not in valid_ranks:
+                    return False, None, "invalid_shammas_rank"
+                
+                # Check gender constraint (use existing or new gender)
+                current_gender = gender if gender is not None else user.gender
+                if current_gender == 'female' and shammas_rank != 'no':
+                    return False, None, "female_cannot_be_shammas"
+                
+                user.shammas_rank = shammas_rank
+
             user.updated_at = datetime.utcnow()
+            db.flush()
 
             # FIX: Expunge before returning
             db.expunge(user)
@@ -224,7 +273,13 @@ def update_user(
 
 def delete_user(telegram_id: int) -> Tuple[bool, str]:
     """
-    Delete a user.
+    Delete a user and all their related attendance records.
+    
+    This function performs cascading deletion:
+    - Deletes attendance records where user is the student (user_id)
+    - Deletes attendance records marked by this user (marked_by)
+    
+    This ensures complete removal without constraint violations.
 
     Args:
         telegram_id: Telegram user ID
@@ -239,6 +294,19 @@ def delete_user(telegram_id: int) -> Tuple[bool, str]:
             if not user:
                 return False, "user_not_found"
 
+            from database import Attendance
+            
+            # Delete all attendance records where this user is the student
+            db.query(Attendance).filter(Attendance.user_id == user.id).delete(
+                synchronize_session=False
+            )
+            
+            # Delete all attendance records marked by this user
+            db.query(Attendance).filter(Attendance.marked_by == user.id).delete(
+                synchronize_session=False
+            )
+            
+            # Now safe to delete user
             db.delete(user)
 
             return True, ""
