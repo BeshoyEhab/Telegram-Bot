@@ -188,7 +188,7 @@ if DEBUG:
     print("=" * 50)
     print("CONFIGURATION SUMMARY")
     print("=" * 50)
-    print(f"Database: {DATABASE_URL}")
+    print(f"Database: {REDIS_URL}")
     print(f"Redis Enabled: {REDIS_ENABLED}")
     print(f"Webhook Mode: {WEBHOOK_MODE}")
     print(f"Debug Mode: {DEBUG}")

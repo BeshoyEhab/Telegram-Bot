@@ -17,7 +17,7 @@ from telegram.request import HTTPXRequest
 
 import config
 from utils.logging_config import setup_logging
-from database import init_db, check_connection
+from database import check_connection
 from handlers import (
     register_common_handlers,
     register_language_handlers,
@@ -76,8 +76,8 @@ def main():
         return
 
     # Initialize database
-    logger.info("Initializing database tables...")
-    init_db()
+    # logger.info("Initializing database tables...")
+    # init_db()
 
 
 def create_application() -> Application:
@@ -138,15 +138,15 @@ def main():
         return
 
     # Initialize database
-    logger.info("Initializing database tables...")
-    init_db()
+    # logger.info("Initializing database tables...")
+    # init_db()
 
     # Create application
     application = create_application()
 
     # Start bot
     logger.info("Bot is starting...")
-    logger.info(f"Database: {config.DATABASE_URL}")
+    logger.info(f"Database: {config.REDIS_URL}")
     logger.info(f"Authorized users: {len(config.AUTHORIZED_USERS)}")
     logger.info("=" * 60)
 
