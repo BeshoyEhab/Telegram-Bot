@@ -42,8 +42,8 @@ async def view_my_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.edit_message_text(get_translation(lang, "user_not_found"))
         return
 
-    # Get attendance history (last 10 records)
-    attendance_records = get_user_attendance_history(user.id, limit=10)
+    # Get attendance history (all records)
+    attendance_records = get_user_attendance_history(user.id)
 
     if not attendance_records:
         message = get_translation(lang, "check_attendance") + "\n\n"
@@ -83,9 +83,9 @@ async def view_my_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE)
     message += (
         "📅 "
         + (
-            get_translation(lang, "recent_records")
+            get_translation(lang, "all_records")
             if lang == "en"
-            else "السجلات الأخيرة"
+            else "سجل الحضور الكامل"
         )
         + ":\n"
     )

@@ -105,9 +105,11 @@ def require_auth(func: Callable) -> Callable:
         await auto_register_user_if_needed(user.id, user)
         
         # Store user info in context for easy access
-        context.user_data["telegram_id"] = user.id
-        with get_db() as db:
-            context.user_data["role"] = get_user_role(user.id, db)
+        # IMPORTNAT: Do not overwrite if mimicking!
+        if not context.user_data.get('is_mimicking'):
+            context.user_data["telegram_id"] = user.id
+            with get_db() as db:
+                context.user_data["role"] = get_user_role(user.id, db)
         
         return await func(update, context, *args, **kwargs)
     
@@ -175,10 +177,13 @@ async def load_user_context(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data["language"] = get_user_language(user.id, db)
     
     # Load user info
-    if "telegram_id" not in context.user_data:
-        context.user_data["telegram_id"] = user.id
-        with get_db() as db:
-            context.user_data["role"] = get_user_role(user.id, db)
+    if "telegram_id" not in context.user_data or not context.user_data.get('is_mimicking'):
+        # Only set if not already set OR if not mimicking
+        # If mimicking, we want to KEEP the mimicked identity
+        if not context.user_data.get('is_mimicking'):
+           context.user_data["telegram_id"] = user.id
+           with get_db() as db:
+               context.user_data["role"] = get_user_role(user.id, db)
 
 
 def get_user_lang(context: ContextTypes.DEFAULT_TYPE) -> str:

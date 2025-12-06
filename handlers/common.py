@@ -232,7 +232,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [
                 InlineKeyboardButton(
                     get_translation(lang, "btn_check_attendance"),
-                    callback_data="attendance_start",
+                    callback_data="student_my_attendance",
                 )
             ],
             [
