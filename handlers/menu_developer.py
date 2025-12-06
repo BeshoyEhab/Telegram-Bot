@@ -654,11 +654,12 @@ async def start_mimic_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     # Redirect to main menu as the mimicked user
-    from handlers.menu_main import menu_main
+    # Redirect to main menu as the mimicked user
+    from handlers.common import show_main_menu
     # We need to hack the update to make it look like it came from the mimicked user?
     # Actually, the handlers use context.user_data['telegram_id'], so we just updated that.
-    # Just call menu_main directly.
-    await menu_main(update, context)
+    # Just call show_main_menu directly.
+    await show_main_menu(update, context)
 
 
 async def stop_mimic(update: Update, context: ContextTypes.DEFAULT_TYPE):
